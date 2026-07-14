@@ -1,0 +1,59 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+::selection {
+  background-color: #8c6a2f;
+  color: #f2efe6;
+}
+
+body {
+  background-color: #f2efe6;
+  color: #13202e;
+}
+
+.file-tab {
+  clip-path: polygon(0 0, 100% 0, 96% 100%, 4% 100%);
+}
+
+.case-card {
+  border: 1px solid #d8d2c1;
+  background: #fbfaf6;
+  position: relative;
+}
+
+.case-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 3px;
+  height: 100%;
+  background: #1e4638;
+}
+
+.stamp {
+  font-family: var(--font-mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  border: 1px solid currentColor;
+  padding: 0.15rem 0.5rem;
+  font-size: 0.65rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: 2px solid #1e4638;
+  outline-offset: 2px;
+}
