@@ -119,14 +119,12 @@ export default function CvPage() {
           </section>
 
           <section>
-            <h2 className="font-display text-2xl text-ink border-b border-rule pb-2">Experience</h2>
+            <h2 className="font-display text-2xl text-ink border-b border-rule pb-2">Work Experience</h2>
             <div className="mt-3 space-y-3">
               {cvData.experience.length === 0 && <p className="text-slate text-sm">Nothing extracted.</p>}
               {cvData.experience.map((e, i) => (
                 <div key={i} className="case-card p-4">
-                  <p className="font-medium text-ink">
-                    {e.role} — {e.organization}
-                  </p>
+                  <p className="font-medium text-ink">{e.role} — {e.organization}</p>
                   <p className="text-sm text-slate">
                     {e.startDate ?? "?"} – {e.isCurrent ? "present" : e.endDate ?? "?"}
                   </p>
@@ -135,6 +133,23 @@ export default function CvPage() {
               ))}
             </div>
           </section>
+
+          {(cvData.volunteerExperience?.length ?? 0) > 0 && (
+            <section>
+              <h2 className="font-display text-2xl text-ink border-b border-rule pb-2">Volunteer & Community</h2>
+              <div className="mt-3 space-y-3">
+                {cvData.volunteerExperience.map((e, i) => (
+                  <div key={i} className="case-card p-4">
+                    <p className="font-medium text-ink">{e.role} — {e.organization}</p>
+                    <p className="text-sm text-slate">
+                      {e.startDate ?? "?"} – {e.isCurrent ? "present" : e.endDate ?? "?"}
+                    </p>
+                    {e.description && <p className="text-sm text-ink-soft mt-1.5">{e.description}</p>}
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
 
           <section className="grid sm:grid-cols-3 gap-6">
             <div>

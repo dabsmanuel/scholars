@@ -24,8 +24,18 @@ const DEGREE_LEVELS = [
   { value: "none", label: "No degree requirement" },
 ];
 
+const PAGE_SIZE = 20;
+
+interface Pagination {
+  page: number;
+  limit: number;
+  total: number;
+  pages: number;
+}
+
 export default function HomePage() {
   const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
+  const [pagination, setPagination] = useState<Pagination | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -33,6 +43,10 @@ export default function HomePage() {
   const [type, setType] = useState("");
   const [degreeLevel, setDegreeLevel] = useState("");
   const [country, setCountry] = useState("");
+  const [page, setPage] = useState(1);
+
+  // Reset to page 1 whenever filters change
+  const resetPage = useCallback(() => setPage(1), []);
 
   const fetchOpportunities = useCallback(async () => {
     setLoading(true);
@@ -43,23 +57,34 @@ export default function HomePage() {
       if (type) params.set("type", type);
       if (degreeLevel) params.set("degreeLevel", degreeLevel);
       if (country) params.set("country", country);
+      params.set("page", String(page));
+      params.set("limit", String(PAGE_SIZE));
 
-      const data = await api.get<{ opportunities: Opportunity[] }>(
+      const data = await api.get<{ opportunities: Opportunity[]; pagination: Pagination }>(
         `/opportunities?${params.toString()}`,
         { auth: false }
       );
       setOpportunities(data.opportunities);
+      setPagination(data.pagination);
     } catch (err: any) {
       setError(err.message || "Couldn't load opportunities right now.");
     } finally {
       setLoading(false);
     }
-  }, [q, type, degreeLevel, country]);
+  }, [q, type, degreeLevel, country, page]);
 
+  // Debounce filter changes (text input) but respond immediately to page changes
   useEffect(() => {
     const timeout = setTimeout(fetchOpportunities, 300);
     return () => clearTimeout(timeout);
   }, [fetchOpportunities]);
+
+  function handleFilterChange(setter: (v: string) => void) {
+    return (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+      setter(e.target.value);
+      resetPage();
+    };
+  }
 
   return (
     <div className="max-w-6xl mx-auto px-6 py-14">
@@ -77,13 +102,13 @@ export default function HomePage() {
       <div className="mt-10 border-y border-rule py-5 flex flex-col md:flex-row gap-3">
         <input
           value={q}
-          onChange={(e) => setQ(e.target.value)}
+          onChange={handleFilterChange(setQ)}
           placeholder="Search by title, provider, or keyword…"
           className="flex-1 bg-transparent border border-rule px-4 py-2.5 text-sm focus:border-forest outline-none"
         />
         <select
           value={type}
-          onChange={(e) => setType(e.target.value)}
+          onChange={handleFilterChange(setType)}
           className="border border-rule px-3 py-2.5 text-sm bg-paper"
         >
           {TYPES.map((t) => (
@@ -94,7 +119,7 @@ export default function HomePage() {
         </select>
         <select
           value={degreeLevel}
-          onChange={(e) => setDegreeLevel(e.target.value)}
+          onChange={handleFilterChange(setDegreeLevel)}
           className="border border-rule px-3 py-2.5 text-sm bg-paper"
         >
           {DEGREE_LEVELS.map((d) => (
@@ -105,7 +130,7 @@ export default function HomePage() {
         </select>
         <input
           value={country}
-          onChange={(e) => setCountry(e.target.value)}
+          onChange={handleFilterChange(setCountry)}
           placeholder="Country"
           className="w-full md:w-40 bg-transparent border border-rule px-4 py-2.5 text-sm focus:border-forest outline-none"
         />
@@ -117,11 +142,65 @@ export default function HomePage() {
         {!loading && !error && opportunities.length === 0 && (
           <p className="text-slate">No opportunities match those filters yet. Try widening your search.</p>
         )}
+
+        {pagination && !loading && (
+          <p className="text-xs text-slate font-mono mb-5">
+            {pagination.total} result{pagination.total !== 1 ? "s" : ""}
+            {pagination.pages > 1 && ` — page ${pagination.page} of ${pagination.pages}`}
+          </p>
+        )}
+
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
           {opportunities.map((o) => (
             <OpportunityCard key={o._id} opportunity={o} />
           ))}
         </div>
+
+        {pagination && pagination.pages > 1 && (
+          <div className="mt-10 flex items-center justify-center gap-2">
+            <button
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={page === 1 || loading}
+              className="border border-rule px-4 py-2 text-sm font-mono text-ink-soft hover:border-forest hover:text-forest disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+            >
+              ← Prev
+            </button>
+
+            {Array.from({ length: pagination.pages }, (_, i) => i + 1)
+              .filter((p) => p === 1 || p === pagination.pages || Math.abs(p - page) <= 2)
+              .reduce<(number | "…")[]>((acc, p, idx, arr) => {
+                if (idx > 0 && p - (arr[idx - 1] as number) > 1) acc.push("…");
+                acc.push(p);
+                return acc;
+              }, [])
+              .map((p, i) =>
+                p === "…" ? (
+                  <span key={`ellipsis-${i}`} className="text-slate font-mono text-sm px-1">…</span>
+                ) : (
+                  <button
+                    key={p}
+                    onClick={() => setPage(p as number)}
+                    disabled={loading}
+                    className={`w-9 h-9 text-sm font-mono border transition-colors disabled:opacity-50 ${
+                      page === p
+                        ? "border-forest bg-forest text-paper"
+                        : "border-rule text-ink-soft hover:border-forest hover:text-forest"
+                    }`}
+                  >
+                    {p}
+                  </button>
+                )
+              )}
+
+            <button
+              onClick={() => setPage((p) => Math.min(pagination.pages, p + 1))}
+              disabled={page === pagination.pages || loading}
+              className="border border-rule px-4 py-2 text-sm font-mono text-ink-soft hover:border-forest hover:text-forest disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+            >
+              Next →
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

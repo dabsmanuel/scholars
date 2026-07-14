@@ -17,7 +17,7 @@ const TYPE_LABELS: Record<string, string> = {
 
 export default function OpportunityDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const router = useRouter();
 
   const [opportunity, setOpportunity] = useState<Opportunity | null>(null);
@@ -65,6 +65,7 @@ export default function OpportunityDetailPage() {
     try {
       await api.post(`/opportunities/${id}/save`);
       setSaved(true);
+      await refreshUser();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Couldn't save this opportunity.");
     } finally {
@@ -79,7 +80,7 @@ export default function OpportunityDetailPage() {
   const hasBreakdown = Boolean(opportunity.strongApplicantProfile);
 
   return (
-    <div className="max-w-4xl mx-auto px-6 py-14">
+    <div className="max-w-5xl mx-auto px-6 py-14">
       <div className="flex flex-wrap items-center gap-3">
         <span className="stamp text-forest border-forest">{TYPE_LABELS[opportunity.type]}</span>
         <span className="text-xs text-slate font-mono">{opportunity.country}</span>

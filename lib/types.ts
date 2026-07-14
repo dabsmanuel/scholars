@@ -26,6 +26,7 @@ export interface CVData {
   summary?: string;
   education: EducationEntry[];
   experience: ExperienceEntry[];
+  volunteerExperience: ExperienceEntry[];
   skills: string[];
   certifications: string[];
   languages: string[];
@@ -41,14 +42,24 @@ export interface SavedOpportunity {
   notes?: string;
 }
 
+export interface Subscription {
+  plan: "free" | "pro";
+  status: "active" | "past_due" | "canceled" | "trialing";
+  gateway?: "stripe" | "paystack";
+  currentPeriodEnd?: string;
+}
+
 export interface User {
   _id: string;
   fullName: string;
   email: string;
-  country?: string;
+  country: string;
   targetFields: string[];
   cvData?: CVData;
   savedOpportunities: SavedOpportunity[];
+  subscription: Subscription;
+  coachingUsed: number;
+  isAdmin: boolean;
 }
 
 export type OpportunityType = "scholarship" | "study_program" | "immigration_pathway" | "incubator" | "fellowship";
@@ -91,6 +102,7 @@ export interface CoachingOutput {
   applicationGuide: string;
   generatedAt: string;
   modelVersion: string;
+  cvParsedAt?: string;
 }
 
 export interface EssayDraft {
@@ -112,6 +124,7 @@ export interface Application {
   _id: string;
   user: string;
   opportunity: Opportunity | string;
+  targetApplications: { program?: string; school?: string }[];
   coaching?: CoachingOutput;
   essayDrafts: EssayDraft[];
   status: "draft" | "coaching_generated" | "in_review" | "submitted" | "outcome_recorded";

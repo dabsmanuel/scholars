@@ -1,10 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { Application, Opportunity } from "@/lib/types";
+import UpgradePrompt from "@/components/UpgradePrompt";
+
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
 
 export default function ApplicationCoachingPage() {
   const { opportunityId } = useParams<{ opportunityId: string }>();
@@ -15,7 +18,13 @@ export default function ApplicationCoachingPage() {
   const [opportunity, setOpportunity] = useState<Opportunity | null>(null);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
+  const [streamingText, setStreamingText] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const streamBoxRef = useRef<HTMLDivElement>(null);
+
+  const [targets, setTargets] = useState<{ program: string; school: string }[]>([{ program: "", school: "" }]);
+  const [savingTarget, setSavingTarget] = useState(false);
+  const [targetSaved, setTargetSaved] = useState(false);
 
   const [essayTitle, setEssayTitle] = useState("");
   const [essayContent, setEssayContent] = useState("");
@@ -38,6 +47,12 @@ export default function ApplicationCoachingPage() {
         try {
           const appData = await api.get<{ application: Application }>(`/applications/${opportunityId}`);
           setApplication(appData.application);
+          const saved = appData.application.targetApplications ?? [];
+          setTargets(
+            saved.length > 0
+              ? saved.map((t) => ({ program: t.program ?? "", school: t.school ?? "" }))
+              : [{ program: "", school: "" }]
+          );
         } catch (err) {
           if (err instanceof ApiError && err.status !== 404) throw err;
         }
@@ -51,22 +66,112 @@ export default function ApplicationCoachingPage() {
     load();
   }, [user, opportunityId]);
 
-  async function handleGenerateCoaching(force = false) {
+  // Auto-scroll the streaming box to the bottom as text arrives
+  useEffect(() => {
+    if (streamBoxRef.current) {
+      streamBoxRef.current.scrollTop = streamBoxRef.current.scrollHeight;
+    }
+  }, [streamingText]);
+
+  async function handleStreamCoaching(force = false) {
     setGenerating(true);
+    setStreamingText("");
     setError(null);
+
+    const token = typeof window !== "undefined" ? localStorage.getItem("passage_token") : null;
+    const url = `${API_BASE}/applications/${opportunityId}/coaching/stream${force ? "?force=true" : ""}`;
+
     try {
-      const data = await api.post<{ application: Application }>(
-        `/applications/${opportunityId}/coaching${force ? "?force=true" : ""}`
+      const res = await fetch(url, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+
+      if (!res.ok) {
+        const text = await res.text();
+        let message = "Couldn't generate coaching right now. Please try again shortly.";
+        try {
+          const json = JSON.parse(text);
+          message = json.error || message;
+        } catch { /* use default */ }
+        setError(message);
+        setGenerating(false);
+        return;
+      }
+
+      const reader = res.body?.getReader();
+      if (!reader) throw new Error("No response body");
+
+      const decoder = new TextDecoder();
+      let buffer = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() ?? "";
+
+        for (const line of lines) {
+          if (!line.startsWith("data: ")) continue;
+          const raw = line.slice(6).trim();
+          if (!raw) continue;
+
+          try {
+            const event = JSON.parse(raw);
+            if (event.type === "chunk") {
+              setStreamingText((prev) => prev + event.text);
+            } else if (event.type === "done") {
+              setApplication(event.application);
+              setStreamingText("");
+              setGenerating(false);
+            } else if (event.type === "error") {
+              setError(event.message || "Generation failed.");
+              setGenerating(false);
+            }
+          } catch { /* skip malformed lines */ }
+        }
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Couldn't generate coaching right now.");
+      setGenerating(false);
+    }
+  }
+
+  function updateTarget(index: number, field: "program" | "school", value: string) {
+    setTargets((prev) => prev.map((t, i) => (i === index ? { ...t, [field]: value } : t)));
+  }
+
+  function addTarget() {
+    if (targets.length < 4) setTargets((prev) => [...prev, { program: "", school: "" }]);
+  }
+
+  function removeTarget(index: number) {
+    setTargets((prev) => {
+      const next = prev.filter((_, i) => i !== index);
+      return next.length === 0 ? [{ program: "", school: "" }] : next;
+    });
+  }
+
+  async function handleSaveTarget(e: React.FormEvent) {
+    e.preventDefault();
+    setSavingTarget(true);
+    setTargetSaved(false);
+    const payload = targets
+      .filter((t) => t.program || t.school)
+      .map((t) => ({ program: t.program || undefined, school: t.school || undefined }));
+    try {
+      const data = await api.patch<{ application: Application }>(
+        `/applications/${opportunityId}/target`,
+        { targetApplications: payload }
       );
       setApplication(data.application);
+      setTargetSaved(true);
+      setTimeout(() => setTargetSaved(false), 3000);
     } catch (err) {
-      setError(
-        err instanceof ApiError
-          ? err.message
-          : "Couldn't generate coaching right now. Please try again shortly."
-      );
+      setError(err instanceof ApiError ? err.message : "Couldn't save target details.");
     } finally {
-      setGenerating(false);
+      setSavingTarget(false);
     }
   }
 
@@ -96,12 +201,18 @@ export default function ApplicationCoachingPage() {
   if (!opportunity) return <p className="max-w-4xl mx-auto px-6 py-20 text-alert">{error}</p>;
 
   const needsCv = error?.toLowerCase().includes("upload your cv");
+  const needsUpgradeCoaching = error?.startsWith("UPGRADE_REQUIRED:coaching");
+  const needsUpgradeEssays = error?.startsWith("UPGRADE_REQUIRED:essays");
   const coaching = application?.coaching;
+  const isStale =
+    !!coaching?.cvParsedAt &&
+    !!user?.cvData?.parsedAt &&
+    new Date(user.cvData.parsedAt) > new Date(coaching.cvParsedAt);
 
   return (
-    <div className="max-w-4xl mx-auto px-6 py-14">
+    <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8 sm:py-14">
       <p className="font-mono text-xs tracking-widest uppercase text-brass">Case File</p>
-      <h1 className="font-display text-4xl text-ink mt-2 leading-tight">{opportunity.title}</h1>
+      <h1 className="font-display text-2xl sm:text-4xl text-ink mt-2 leading-tight">{opportunity.title}</h1>
       <p className="text-ink-soft mt-1">{opportunity.provider}</p>
 
       {needsCv && (
@@ -113,55 +224,172 @@ export default function ApplicationCoachingPage() {
         </div>
       )}
 
-      {!coaching && !needsCv && (
+      {/* Target programs — always shown once CV check passes */}
+      {!needsCv && !needsUpgradeCoaching && (
         <div className="mt-8 case-card p-6">
-          <h2 className="font-display text-2xl text-ink">Build your strategy</h2>
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h2 className="font-display text-lg sm:text-xl text-ink">Target programs</h2>
+              <p className="text-ink-soft text-sm mt-1 leading-relaxed">
+                Add every program and university you're applying to — scholarships like this one
+                often require or encourage multiple applications. Claude will tailor the coaching
+                to cover each track.
+              </p>
+            </div>
+            {targets.length < 4 && (
+              <button
+                type="button"
+                onClick={addTarget}
+                className="shrink-0 text-xs font-mono text-forest border border-forest px-3 py-1.5 hover:bg-forest hover:text-paper transition-colors mt-0.5"
+              >
+                + Add
+              </button>
+            )}
+          </div>
+
+          <form onSubmit={handleSaveTarget} className="mt-4 space-y-3">
+            {targets.map((t, i) => (
+              <div key={i} className="flex gap-2 items-start">
+                <span className="font-mono text-xs text-brass pt-2.5 w-4 shrink-0">{i + 1}.</span>
+                <div className="flex-1 grid sm:grid-cols-2 gap-2">
+                  <input
+                    value={t.program}
+                    onChange={(e) => updateTarget(i, "program", e.target.value)}
+                    placeholder="Program / Course"
+                    className="w-full border border-rule px-3 py-2 bg-transparent focus:border-forest outline-none text-sm"
+                  />
+                  <input
+                    value={t.school}
+                    onChange={(e) => updateTarget(i, "school", e.target.value)}
+                    placeholder="University / Institution"
+                    className="w-full border border-rule px-3 py-2 bg-transparent focus:border-forest outline-none text-sm"
+                  />
+                </div>
+                {targets.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => removeTarget(i)}
+                    className="shrink-0 text-slate hover:text-alert transition-colors pt-2 text-lg leading-none"
+                    aria-label="Remove"
+                  >
+                    ×
+                  </button>
+                )}
+              </div>
+            ))}
+
+            <div className="flex items-center gap-4 pt-1">
+              <button
+                type="submit"
+                disabled={savingTarget}
+                className="text-sm text-forest border border-forest px-4 py-2 hover:bg-forest hover:text-paper transition-colors disabled:opacity-60"
+              >
+                {savingTarget ? "Saving…" : "Save"}
+              </button>
+              {targetSaved && (
+                <span className="text-xs font-mono text-forest">Saved — regenerate coaching to apply.</span>
+              )}
+              <span className="text-xs text-slate font-mono ml-auto">{targets.length}/4</span>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {!coaching && !needsCv && !needsUpgradeCoaching && !generating && (
+        <div className="mt-4 case-card p-6">
+          <h2 className="font-display text-xl sm:text-2xl text-ink">Build your strategy</h2>
           <p className="text-ink-soft mt-2 leading-relaxed">
             We'll weigh your CV against this opportunity's actual requirements — objectives, alignment,
             essay angle, honest gaps, a requirement-by-requirement breakdown, and a working timeline.
+            {targets.some((t) => t.program || t.school) && (
+              <span className="text-forest"> Your {targets.filter((t) => t.program || t.school).length} target program{targets.filter((t) => t.program || t.school).length > 1 ? "s" : ""} will be factored in.</span>
+            )}
           </p>
           <button
-            onClick={() => handleGenerateCoaching(false)}
+            onClick={() => handleStreamCoaching(false)}
             disabled={generating}
             className="mt-4 bg-forest text-paper px-5 py-2.5 text-sm hover:bg-forest-light transition-colors disabled:opacity-60"
           >
-            {generating ? "Building your case…" : "Generate my coaching"}
+            Generate my coaching
           </button>
         </div>
       )}
 
-      {coaching && (
+      {needsUpgradeCoaching && <UpgradePrompt feature="coaching" />}
+
+      {/* Live streaming typewriter view */}
+      {generating && (
+        <div className="mt-8">
+          <div className="flex items-center gap-2 mb-3">
+            <span className="inline-block w-2 h-2 rounded-full bg-forest animate-pulse" />
+            <p className="text-sm font-mono text-slate">Building your coaching analysis…</p>
+          </div>
+          <div
+            ref={streamBoxRef}
+            className="case-card p-5 h-72 overflow-y-auto"
+          >
+            <pre className="font-mono text-xs text-ink-soft whitespace-pre-wrap leading-relaxed break-all">
+              {streamingText}
+              <span className="inline-block w-1.5 h-3.5 bg-forest align-middle ml-0.5 animate-pulse" />
+            </pre>
+          </div>
+        </div>
+      )}
+
+      {coaching && !generating && (
         <div className="mt-10 space-y-8">
-          <div className="flex items-center justify-between">
-            <p className="text-xs text-slate font-mono">
-              Generated {new Date(coaching.generatedAt).toLocaleString()}
-            </p>
+          {isStale && (
+            <div className="case-card p-4 border-l-4 border-brass">
+              <p className="text-sm text-ink">
+                Your CV was updated after this coaching was generated — the analysis may no longer reflect your current profile.
+              </p>
+              <button
+                onClick={() => handleStreamCoaching(true)}
+                disabled={generating}
+                className="mt-2 text-sm text-brass underline disabled:opacity-60"
+              >
+                Regenerate with updated CV
+              </button>
+            </div>
+          )}
+
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <p className="text-xs text-slate font-mono">
+                Generated {new Date(coaching.generatedAt).toLocaleString()}
+              </p>
+              {(application?.targetApplications?.length ?? 0) > 0 && (
+                <p className="text-xs text-slate font-mono mt-0.5">
+                  Targets: {application!.targetApplications.map((t) => [t.program, t.school].filter(Boolean).join(" @ ")).join(", ")}
+                </p>
+              )}
+            </div>
             <button
-              onClick={() => handleGenerateCoaching(true)}
+              onClick={() => handleStreamCoaching(true)}
               disabled={generating}
               className="text-xs text-forest underline disabled:opacity-60"
             >
-              {generating ? "Regenerating…" : "Regenerate"}
+              Regenerate
             </button>
           </div>
 
           <section>
-            <h2 className="font-display text-2xl text-ink border-b border-rule pb-2">What they're actually seeking</h2>
+            <h2 className="font-display text-xl sm:text-2xl text-ink border-b border-rule pb-2">What they're actually seeking</h2>
             <p className="text-ink-soft mt-3 leading-relaxed">{coaching.scholarshipObjectives}</p>
           </section>
 
           <section>
-            <h2 className="font-display text-2xl text-ink border-b border-rule pb-2">Your background alignment</h2>
+            <h2 className="font-display text-xl sm:text-2xl text-ink border-b border-rule pb-2">Your background alignment</h2>
             <p className="text-ink-soft mt-3 leading-relaxed whitespace-pre-line">{coaching.backgroundAlignment}</p>
           </section>
 
           <section>
-            <h2 className="font-display text-2xl text-ink border-b border-rule pb-2">Essay strategy</h2>
+            <h2 className="font-display text-xl sm:text-2xl text-ink border-b border-rule pb-2">Essay strategy</h2>
             <p className="text-ink-soft mt-3 leading-relaxed whitespace-pre-line">{coaching.essayStrategy}</p>
           </section>
 
           <section>
-            <h2 className="font-display text-2xl text-ink border-b border-rule pb-2">Weaknesses, and how to handle them</h2>
+            <h2 className="font-display text-xl sm:text-2xl text-ink border-b border-rule pb-2">Weaknesses, and how to handle them</h2>
             <div className="mt-3 space-y-3">
               {coaching.weaknesses.map((w, i) => (
                 <div key={i} className="case-card p-4">
@@ -176,7 +404,7 @@ export default function ApplicationCoachingPage() {
           </section>
 
           <section>
-            <h2 className="font-display text-2xl text-ink border-b border-rule pb-2">Requirement by requirement</h2>
+            <h2 className="font-display text-xl sm:text-2xl text-ink border-b border-rule pb-2">Requirement by requirement</h2>
             <div className="mt-3 space-y-3">
               {coaching.requirementBreakdown.map((r, i) => (
                 <div key={i} className="case-card p-4">
@@ -188,14 +416,14 @@ export default function ApplicationCoachingPage() {
           </section>
 
           <section>
-            <h2 className="font-display text-2xl text-ink border-b border-rule pb-2">Timeline</h2>
+            <h2 className="font-display text-xl sm:text-2xl text-ink border-b border-rule pb-2">Timeline</h2>
             <div className="mt-3 space-y-2">
               {coaching.timeline.map((t, i) => (
-                <div key={i} className="flex gap-4 border-b border-rule pb-2 last:border-0">
-                  <span className="font-mono text-xs text-brass whitespace-nowrap pt-0.5">
+                <div key={i} className="flex flex-col sm:flex-row sm:gap-4 border-b border-rule pb-2 last:border-0">
+                  <span className="font-mono text-xs text-brass break-words sm:whitespace-nowrap sm:pt-0.5">
                     {t.targetDate || `Step ${i + 1}`}
                   </span>
-                  <div>
+                  <div className="min-w-0 mt-0.5 sm:mt-0">
                     <p className="text-ink text-sm font-medium">{t.milestone}</p>
                     <p className="text-slate text-sm">{t.deliverable}</p>
                   </div>
@@ -205,12 +433,17 @@ export default function ApplicationCoachingPage() {
           </section>
 
           <section>
-            <h2 className="font-display text-2xl text-ink border-b border-rule pb-2">Application walkthrough</h2>
+            <h2 className="font-display text-xl sm:text-2xl text-ink border-b border-rule pb-2">Application walkthrough</h2>
             <p className="text-ink-soft mt-3 leading-relaxed whitespace-pre-line">{coaching.applicationGuide}</p>
           </section>
 
           <section>
-            <h2 className="font-display text-2xl text-ink border-b border-rule pb-2">Essay review</h2>
+            <h2 className="font-display text-xl sm:text-2xl text-ink border-b border-rule pb-2">Essay review</h2>
+
+            {needsUpgradeEssays ? (
+              <UpgradePrompt feature="essays" />
+            ) : (
+            <>
             <p className="text-ink-soft mt-3">
               Paste a draft of your personal statement or essay and get specific, actionable feedback
               against this opportunity's requirements and your own CV.
@@ -245,9 +478,9 @@ export default function ApplicationCoachingPage() {
               <div className="mt-8 space-y-6">
                 {[...application.essayDrafts].reverse().map((draft) => (
                   <div key={draft._id} className="case-card p-5">
-                    <div className="flex items-center justify-between">
-                      <p className="font-display text-lg text-ink">{draft.title}</p>
-                      <span className="text-xs font-mono text-slate">v{draft.version}</span>
+                    <div className="flex flex-wrap items-start justify-between gap-2">
+                      <p className="font-display text-base sm:text-lg text-ink min-w-0 break-words">{draft.title}</p>
+                      <span className="text-xs font-mono text-slate shrink-0">v{draft.version}</span>
                     </div>
                     {draft.feedback && (
                       <div className="mt-4 space-y-4">
@@ -289,11 +522,15 @@ export default function ApplicationCoachingPage() {
                 ))}
               </div>
             )}
+            </>
+            )}
           </section>
         </div>
       )}
 
-      {error && !needsCv && <p className="text-alert text-sm mt-6">{error}</p>}
+      {error && !needsCv && !needsUpgradeCoaching && !needsUpgradeEssays && (
+        <p className="text-alert text-sm mt-6">{error}</p>
+      )}
     </div>
   );
 }

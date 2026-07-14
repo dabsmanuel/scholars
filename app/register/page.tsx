@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
 import { ApiError } from "@/lib/api";
+import { COUNTRIES } from "@/lib/countries";
 
 export default function RegisterPage() {
   const { register } = useAuth();
@@ -18,10 +19,14 @@ export default function RegisterPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (!country) {
+      setError("Please select your country.");
+      return;
+    }
     setError(null);
     setSubmitting(true);
     try {
-      await register(fullName, email, password, country || undefined);
+      await register(fullName, email, password, country);
       router.push("/cv");
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Couldn't create your account. Please try again.");
@@ -68,12 +73,25 @@ export default function RegisterPage() {
           <p className="text-xs text-slate mt-1">At least 8 characters.</p>
         </div>
         <div>
-          <label className="block text-sm text-ink-soft mb-1.5">Country (optional)</label>
-          <input
+          <label className="block text-sm text-ink-soft mb-1.5">
+            Country <span className="text-alert">*</span>
+          </label>
+          <select
+            required
             value={country}
             onChange={(e) => setCountry(e.target.value)}
-            className="w-full border border-rule px-4 py-2.5 bg-transparent focus:border-forest outline-none"
-          />
+            className="w-full border border-rule px-4 py-2.5 bg-paper focus:border-forest outline-none text-sm"
+          >
+            <option value="">Select your country…</option>
+            {COUNTRIES.map((c) => (
+              <option key={c.code} value={c.code}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+          <p className="text-xs text-slate mt-1">
+            Used to tailor your experience and payment options.
+          </p>
         </div>
 
         {error && <p className="text-alert text-sm">{error}</p>}
