@@ -35,7 +35,7 @@ export default function NavBar() {
     <header className="border-b border-rule bg-paper sticky top-0 z-30">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4 sm:py-5 flex items-center justify-between">
         <Link href="/" className="flex items-baseline gap-2">
-          <span className="font-display italic text-2xl text-ink">Toru</span>
+          <span className="font-display italic text-2xl text-ink">Passage</span>
         </Link>
 
         {/* Desktop nav */}

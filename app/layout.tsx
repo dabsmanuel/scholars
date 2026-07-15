@@ -24,7 +24,7 @@ const mono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Toru — Scholarships & Opportunities for African Talent",
+  title: "Passage — Scholarships & Opportunities for African Talent",
   description:
     "Find scholarships, study programs, and immigration or incubation pathways abroad, and get a genuinely personalized application strategy built from your own CV.",
 };
@@ -38,7 +38,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <main className="min-h-screen">{children}</main>
           <footer className="border-t border-rule mt-24">
             <div className="max-w-6xl mx-auto px-6 py-8 flex flex-col sm:flex-row justify-between gap-2 text-sm text-slate">
-              <span>Toru — case files for the applications that matter.</span>
+              <span>Passage — case files for the applications that matter.</span>
               <span className="font-mono text-xs">BUILT FOR THE JOURNEY ABROAD</span>
             </div>
           </footer>
