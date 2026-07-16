@@ -42,6 +42,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const data = await api.post<{ token: string; user: User }>("/auth/login", { email, password }, { auth: false });
     setToken(data.token);
     setUser(data.user);
+    // console.log("User logged in:", data.user);
   }
 
   async function register(fullName: string, email: string, password: string, country?: string) {
@@ -52,6 +53,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     );
     setToken(data.token);
     setUser(data.user);
+    // console.log("User registered:", data.user);
   }
 
   function logout() {

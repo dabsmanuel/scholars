@@ -373,6 +373,44 @@ export default function ApplicationCoachingPage() {
             </button>
           </div>
 
+          {coaching.competitivePosition && (() => {
+            const pos = coaching.competitivePosition;
+            const tierConfig: Record<string, { label: string; borderColor: string; labelColor: string; bg: string }> = {
+              strong:      { label: "Strong fit",      borderColor: "border-forest",  labelColor: "text-forest",  bg: "bg-forest/5" },
+              competitive: { label: "Competitive",     borderColor: "border-brass",   labelColor: "text-brass",   bg: "bg-brass/5" },
+              borderline:  { label: "Borderline",      borderColor: "border-slate",   labelColor: "text-slate",   bg: "bg-slate/5" },
+              longshot:    { label: "Long shot",        borderColor: "border-alert",   labelColor: "text-alert",   bg: "bg-alert/5" },
+            };
+            const cfg = tierConfig[pos.tier] ?? tierConfig.borderline;
+            return (
+              <section>
+                <h2 className="font-display text-xl sm:text-2xl text-ink border-b border-rule pb-2">Where you stand</h2>
+                <div className={`mt-4 border-l-4 ${cfg.borderColor} ${cfg.bg} p-4`}>
+                  <span className={`font-mono text-xs uppercase tracking-widest font-semibold ${cfg.labelColor}`}>
+                    {cfg.label}
+                  </span>
+                  {pos.standoutFactors.length > 0 && (
+                    <div className="mt-3">
+                      <p className="text-xs font-mono uppercase text-forest mb-1.5">Your edge</p>
+                      <ul className="space-y-1">
+                        {pos.standoutFactors.map((f, i) => (
+                          <li key={i} className="text-sm text-ink-soft flex gap-2">
+                            <span className="text-forest shrink-0">→</span>
+                            {f}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  <div className="mt-3">
+                    <p className="text-xs font-mono uppercase text-slate mb-1.5">Gap from the typical winner</p>
+                    <p className="text-sm text-ink-soft leading-relaxed">{pos.gapFromWinner}</p>
+                  </div>
+                </div>
+              </section>
+            );
+          })()}
+
           <section>
             <h2 className="font-display text-xl sm:text-2xl text-ink border-b border-rule pb-2">What they're actually seeking</h2>
             <p className="text-ink-soft mt-3 leading-relaxed">{coaching.scholarshipObjectives}</p>

@@ -3,7 +3,7 @@
 import Link from "next/link";
 
 interface Props {
-  feature: "coaching" | "essays";
+  feature: "coaching" | "essays" | "recommendations";
 }
 
 const COPY = {
@@ -14,6 +14,10 @@ const COPY = {
   essays: {
     heading: "Essay review is a Pro feature",
     body: "Upgrade to Pro to submit essay drafts and get line-by-line feedback against your CV and the opportunity's criteria.",
+  },
+  recommendations: {
+    heading: "Personalised matching is a Pro feature",
+    body: "Upgrade to Pro to see every opportunity in the catalogue scored and ranked against your actual CV — so you know exactly which ones are worth your time before you apply.",
   },
 };
 

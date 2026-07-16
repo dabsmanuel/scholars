@@ -112,7 +112,11 @@ export default function PricingPage() {
                 <span className="text-forest mt-0.5">✓</span>{f}
               </li>
             ))}
-            {["Unlimited coaching generations", "Essay review & feedback"].map((f) => (
+            {[
+              "Personalised CV matching (For You)",
+              "Unlimited coaching generations",
+              "Essay review & feedback",
+            ].map((f) => (
               <li key={f} className="flex gap-2 text-sm text-slate line-through">
                 <span className="text-rule mt-0.5">×</span>{f}
               </li>
@@ -149,6 +153,7 @@ export default function PricingPage() {
           <ul className="mt-6 space-y-3 flex-1">
             {[
               "Everything in Free",
+              "Personalised CV matching — ranked For You tab",
               "Unlimited coaching generations",
               "Essay review with line-by-line feedback",
               "Coaching refresh when CV changes",

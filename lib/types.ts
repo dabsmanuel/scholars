@@ -92,6 +92,12 @@ export interface Opportunity {
   isActive: boolean;
 }
 
+export interface CompetitivePosition {
+  tier: "strong" | "competitive" | "borderline" | "longshot";
+  standoutFactors: string[];
+  gapFromWinner: string;
+}
+
 export interface CoachingOutput {
   scholarshipObjectives: string;
   backgroundAlignment: string;
@@ -100,9 +106,20 @@ export interface CoachingOutput {
   requirementBreakdown: { requirementLabel: string; guidance: string }[];
   timeline: { milestone: string; targetDate?: string; deliverable: string }[];
   applicationGuide: string;
+  competitivePosition?: CompetitivePosition;
   generatedAt: string;
   modelVersion: string;
   cvParsedAt?: string;
+}
+
+export interface RecommendationMatch {
+  opportunityId: string;
+  fitScore: number;
+  fitTier: "strong" | "good" | "moderate" | "weak";
+  reasoning: string;
+  standoutFactor: string;
+  urgency?: string;
+  opportunity: Opportunity;
 }
 
 export interface EssayDraft {
