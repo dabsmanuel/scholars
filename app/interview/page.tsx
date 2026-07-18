@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { api, ApiError } from "@/lib/api";
@@ -23,6 +23,14 @@ function AnswerScoreBadge({ score }: { score: number }) {
 }
 
 export default function InterviewPage() {
+  return (
+    <Suspense>
+      <InterviewPageInner />
+    </Suspense>
+  );
+}
+
+function InterviewPageInner() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
