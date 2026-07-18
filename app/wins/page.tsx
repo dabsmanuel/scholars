@@ -16,13 +16,15 @@ const AWARD_LABELS: Record<string, string> = {
 
 const CONFETTI_CHARS = ["✦", "◆", "★", "✸", "◉", "✿", "❋", "⬟"];
 
-function ConfettiDot({ style }: { style: React.CSSProperties }) {
+function ConfettiDot({ style, char }: { style: React.CSSProperties; char: string }) {
   return (
     <span
       aria-hidden
       className="absolute font-mono text-brass/20 select-none pointer-events-none"
       style={style}
-    />
+    >
+      {char}
+    </span>
   );
 }
 
@@ -64,15 +66,14 @@ export default function WinsPage() {
         {confettiItems.map((item, i) => (
           <ConfettiDot
             key={i}
+            char={item.char}
             style={{
               top: item.top,
               left: item.left,
               fontSize: item.fontSize,
               opacity: item.opacity,
             }}
-          >
-            {item.char}
-          </ConfettiDot>
+          />
         ))}
 
         <div className="relative max-w-2xl mx-auto text-center">
