@@ -24,7 +24,7 @@ const DEGREE_LEVELS = [
   { value: "phd", label: "PhD" },
   { value: "postdoc", label: "Postdoc" },
   { value: "professional", label: "Professional" },
-  { value: "none", label: "No degree requirement" },
+  { value: "none", label: "No degree req." },
 ];
 
 const PAGE_SIZE = 20;
@@ -37,10 +37,10 @@ interface Pagination {
 }
 
 const TIER_CONFIG = {
-  strong: { label: "Strong fit", color: "text-forest border-forest bg-forest/5" },
-  good: { label: "Good fit", color: "text-brass border-brass bg-brass/5" },
-  moderate: { label: "Moderate fit", color: "text-slate border-slate bg-slate/5" },
-  weak: { label: "Weak fit", color: "text-alert border-alert bg-alert/5" },
+  strong: { label: "Strong fit", color: "bg-blue-50 text-forest border border-blue-200" },
+  good: { label: "Good fit", color: "bg-amber-50 text-brass border border-amber-200" },
+  moderate: { label: "Moderate fit", color: "bg-slate-50 text-slate border border-slate-200" },
+  weak: { label: "Weak fit", color: "bg-red-50 text-alert border border-red-200" },
 };
 
 function ForYouPanel() {
@@ -75,18 +75,14 @@ function ForYouPanel() {
 
   if (!user) {
     return (
-      <div className="mt-10 border border-rule p-8 max-w-lg">
+      <div className="mt-10 case-card p-8 max-w-lg">
         <p className="font-display text-xl text-ink">Sign in to see your matches</p>
         <p className="text-ink-soft mt-2 text-sm leading-relaxed">
-          Create an account, upload your CV, and we'll rank the catalogue by how well each opportunity fits your actual background.
+          Create an account, upload your CV, and we'll rank every opportunity by how well it fits your actual background.
         </p>
         <div className="mt-5 flex gap-3">
-          <Link href="/login" className="border border-forest text-forest px-4 py-2 text-sm hover:bg-forest hover:text-paper transition-colors">
-            Sign in
-          </Link>
-          <Link href="/register" className="bg-forest text-paper px-4 py-2 text-sm hover:bg-forest-light transition-colors">
-            Create account
-          </Link>
+          <Link href="/login" className="btn-secondary text-sm px-4 py-2">Sign in</Link>
+          <Link href="/register" className="btn-primary text-sm px-4 py-2">Create account</Link>
         </div>
       </div>
     );
@@ -102,14 +98,12 @@ function ForYouPanel() {
 
   if (!user.cvData) {
     return (
-      <div className="mt-10 border border-rule p-8 max-w-lg">
+      <div className="mt-10 case-card p-8 max-w-lg">
         <p className="font-display text-xl text-ink">Upload your CV to unlock matches</p>
         <p className="text-ink-soft mt-2 text-sm leading-relaxed">
-          We'll read your actual background — education, experience, skills — and rank every opportunity in the catalogue against it. No generic suggestions.
+          We read your actual education, experience, and skills — then rank every opportunity against it. No generic suggestions.
         </p>
-        <Link href="/cv" className="inline-block mt-5 bg-forest text-paper px-4 py-2 text-sm hover:bg-forest-light transition-colors">
-          Upload CV →
-        </Link>
+        <Link href="/cv" className="btn-primary inline-flex mt-5 text-sm">Upload CV →</Link>
       </div>
     );
   }
@@ -121,9 +115,9 @@ function ForYouPanel() {
           <span className="inline-block w-2 h-2 rounded-full bg-forest animate-pulse" />
           <p className="text-sm font-mono text-slate">Scoring opportunities against your CV…</p>
         </div>
-        <div className="space-y-4">
+        <div className="space-y-3">
           {[...Array(4)].map((_, i) => (
-            <div key={i} className="border border-rule p-5 animate-pulse">
+            <div key={i} className="case-card p-5 animate-pulse">
               <div className="h-4 bg-rule rounded w-2/3 mb-3" />
               <div className="h-3 bg-rule rounded w-1/3 mb-2" />
               <div className="h-3 bg-rule rounded w-full" />
@@ -147,10 +141,10 @@ function ForYouPanel() {
 
   if (fetched && matches.length === 0) {
     return (
-      <div className="mt-10 border border-rule p-8 max-w-lg">
+      <div className="mt-10 case-card p-8 max-w-lg">
         <p className="font-display text-xl text-ink">No strong matches yet</p>
         <p className="text-ink-soft mt-2 text-sm leading-relaxed">
-          We didn't find opportunities that clearly match your current profile. This improves as more opportunities are added to the catalogue.
+          We didn't find opportunities that clearly match your profile. This improves as more opportunities are added.
         </p>
       </div>
     );
@@ -159,13 +153,13 @@ function ForYouPanel() {
   return (
     <div className="mt-10">
       <p className="text-xs font-mono text-slate mb-6">
-        {matches.length} match{matches.length !== 1 ? "es" : ""} ranked by how well they fit your CV —{" "}
+        {matches.length} opportunit{matches.length !== 1 ? "ies" : "y"} sorted by how well your profile matches the criteria —{" "}
         <button onClick={fetchRecommendations} className="text-forest underline">
           refresh
         </button>
       </p>
 
-      <div className="space-y-4">
+      <div className="space-y-3">
         {matches.map((match) => {
           const tier = TIER_CONFIG[match.fitTier] ?? TIER_CONFIG.moderate;
           const opp = match.opportunity;
@@ -175,7 +169,7 @@ function ForYouPanel() {
             <Link
               key={match.opportunityId}
               href={`/opportunities/${match.opportunityId}`}
-              className="block border border-rule p-5 hover:border-forest transition-colors group"
+              className="block case-card-interactive p-5 group"
             >
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="min-w-0">
@@ -185,9 +179,7 @@ function ForYouPanel() {
                   <p className="text-ink-soft text-sm mt-0.5">{opp.provider} · {opp.country}</p>
                 </div>
                 <div className="flex flex-col items-end gap-1.5 shrink-0">
-                  <span className={`font-mono text-xs border px-2 py-0.5 ${tier.color}`}>
-                    {tier.label}
-                  </span>
+                  <span className={`badge ${tier.color}`}>{tier.label}</span>
                   <span className="font-mono text-xs text-slate">{match.fitScore}/100</span>
                 </div>
               </div>
@@ -206,14 +198,14 @@ function ForYouPanel() {
               )}
 
               <div className="mt-3 flex flex-wrap gap-2">
-                <span className="font-mono text-xs bg-paper border border-rule px-2 py-0.5 text-slate capitalize">
-                  {opp.type.replace("_", " ")}
+                <span className="badge bg-surface text-slate border border-rule">
+                  {opp.type.replace(/_/g, " ")}
                 </span>
-                <span className="font-mono text-xs bg-paper border border-rule px-2 py-0.5 text-slate capitalize">
+                <span className="badge bg-surface text-slate border border-rule capitalize">
                   {opp.degreeLevel}
                 </span>
                 {opp.fundingCoverage && (
-                  <span className="font-mono text-xs bg-paper border border-rule px-2 py-0.5 text-slate">
+                  <span className="badge bg-surface text-slate border border-rule">
                     {opp.fundingCoverage}
                   </span>
                 )}
@@ -224,9 +216,10 @@ function ForYouPanel() {
       </div>
 
       <p className="mt-8 text-xs text-slate font-mono">
-        Scores are based on your CV data as of{" "}
-        {user.cvData?.parsedAt ? new Date(user.cvData.parsedAt).toLocaleDateString() : "upload date"}.{" "}
-        <Link href="/cv" className="text-forest underline">Update your CV</Link> to improve accuracy.
+        Profile fit scores based on your CV as of{" "}
+        {user.cvData?.parsedAt ? new Date(user.cvData.parsedAt).toLocaleDateString() : "upload date"}.
+        A high fit score means you meet the criteria well — committees still make the final call.{" "}
+        <Link href="/cv" className="text-forest underline">Update CV</Link> to improve accuracy.
       </p>
     </div>
   );
@@ -285,88 +278,188 @@ export default function HomePage() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto px-6 py-14">
-      <div className="max-w-2xl">
-        <p className="font-mono text-xs tracking-widest uppercase text-brass">The Catalogue</p>
-        <h1 className="font-display text-4xl sm:text-5xl text-ink mt-3 leading-tight">
-          Every case, argued <em className="italic">before</em> you apply.
-        </h1>
-        <p className="text-ink-soft mt-4 leading-relaxed">
-          Scholarships, study programs, and pathways abroad — each broken down plainly, then matched
-          against your own CV so you know exactly where you stand and what to write.
-        </p>
+    <div className="max-w-6xl mx-auto px-6 py-16">
+      {/* Hero */}
+      <div className="flex flex-col lg:flex-row lg:items-center gap-14 lg:gap-16">
+        <div className="max-w-xl flex-shrink-0">
+          <h1 className="font-display text-5xl sm:text-6xl text-ink leading-[1.05] tracking-tight">
+            Study abroad.<br />
+            <span style={{ color: "#2563EB" }}>Without the guesswork.</span>
+          </h1>
+          <p className="text-ink-soft mt-5 text-lg leading-relaxed">
+            Scholarships and programs matched to your profile. Coaching that closes the gaps before you apply. The committee decides — we help you show up prepared.
+          </p>
+          <div className="mt-7 flex gap-3">
+            <Link href="/register" className="btn-primary">Get started free</Link>
+            <Link href="/cv" className="btn-secondary">Upload your CV</Link>
+          </div>
+          <p className="mt-5 text-xs text-slate font-mono">Free to start · No credit card required</p>
+        </div>
+
+        {/* Product preview */}
+        <div className="hidden lg:block relative flex-1 min-h-[300px]">
+          {/* Glow */}
+          <div
+            className="absolute rounded-3xl pointer-events-none"
+            style={{
+              inset: "-20px",
+              background: "radial-gradient(ellipse at 60% 50%, rgba(37,99,235,0.08) 0%, transparent 70%)",
+            }}
+          />
+
+          {/* Readiness card */}
+          <div className="case-card p-5 absolute top-0 left-0 w-72">
+            <p className="font-mono text-xs text-slate uppercase tracking-widest mb-3">Readiness Score</p>
+            <div className="flex items-center gap-4">
+              <div className="relative shrink-0" style={{ width: 72, height: 72 }}>
+                <svg viewBox="0 0 64 64" className="w-full h-full" style={{ transform: "rotate(-90deg)" }}>
+                  <circle cx="32" cy="32" r="26" fill="none" stroke="#E2E8F0" strokeWidth="5.5" />
+                  <circle cx="32" cy="32" r="26" fill="none" stroke="#2563EB" strokeWidth="5.5"
+                    strokeLinecap="round"
+                    strokeDasharray={String(2 * Math.PI * 26)}
+                    strokeDashoffset={String(2 * Math.PI * 26 * 0.27)}
+                  />
+                </svg>
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <span className="font-display text-xl leading-none" style={{ color: "#2563EB" }}>73</span>
+                </div>
+              </div>
+              <div>
+                <p className="font-display text-lg text-ink">On Track</p>
+                <p className="text-xs text-slate mt-0.5">Language score needed</p>
+              </div>
+            </div>
+            <div className="mt-4 space-y-2">
+              {[
+                { label: "Academic", pct: 80 },
+                { label: "Experience", pct: 64 },
+                { label: "Language", pct: 50 },
+              ].map(({ label, pct }) => (
+                <div key={label} className="flex items-center gap-3">
+                  <span className="text-xs text-slate w-20 shrink-0 font-mono">{label}</span>
+                  <div className="flex-1 h-1.5 bg-rule rounded-full overflow-hidden">
+                    <div className="h-full bg-forest rounded-full" style={{ width: `${pct}%` }} />
+                  </div>
+                  <span className="text-xs font-mono text-slate w-7 text-right">{pct}%</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Match card */}
+          <div
+            className="case-card p-4 absolute w-60"
+            style={{
+              bottom: 0,
+              right: 0,
+              boxShadow: "0 4px 12px 0 rgba(0,0,0,0.08), 0 8px 24px 0 rgba(0,0,0,0.06)",
+            }}
+          >
+            <div className="flex items-start justify-between gap-2 mb-2.5">
+              <div className="min-w-0">
+                <p className="text-xs font-mono text-slate">UK · Full funding</p>
+                <p className="text-sm font-medium text-ink leading-snug mt-0.5">Chevening Scholarship 2025</p>
+              </div>
+              <span className="badge bg-blue-50 text-forest border border-blue-200 shrink-0">Strong</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="flex-1 h-1.5 bg-rule rounded-full overflow-hidden">
+                <div className="h-full bg-forest rounded-full" style={{ width: "87%" }} />
+              </div>
+              <span className="font-mono text-xs text-forest shrink-0 w-8 text-right">87%</span>
+            </div>
+            <p className="text-xs text-ink-soft mt-2 leading-snug">
+              Your profile fits the criteria well — now the preparation starts.
+            </p>
+          </div>
+        </div>
       </div>
 
-      {/* Tab switcher */}
-      <div className="mt-10 flex gap-0 border-b border-rule">
-        <button
-          onClick={() => setActiveTab("catalogue")}
-          className={`px-5 py-2.5 text-sm font-mono transition-colors border-b-2 -mb-px ${
-            activeTab === "catalogue"
-              ? "border-forest text-forest"
-              : "border-transparent text-slate hover:text-ink"
-          }`}
+      {/* Segment control tab switcher */}
+      <div className="mt-14">
+        <div
+          className="inline-flex rounded-lg p-1 gap-1"
+          style={{ background: "#EEF2FF" }}
         >
-          Catalogue
-        </button>
-        <button
-          onClick={() => setActiveTab("for-you")}
-          className={`px-5 py-2.5 text-sm font-mono transition-colors border-b-2 -mb-px ${
-            activeTab === "for-you"
-              ? "border-forest text-forest"
-              : "border-transparent text-slate hover:text-ink"
-          }`}
-        >
-          For You
-        </button>
+          <button
+            onClick={() => setActiveTab("catalogue")}
+            className="px-5 py-2 text-sm font-medium rounded-md transition-all"
+            style={
+              activeTab === "catalogue"
+                ? { background: "#fff", color: "#0F172A", boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }
+                : { background: "transparent", color: "#64748B" }
+            }
+          >
+            Catalogue
+          </button>
+          <button
+            onClick={() => setActiveTab("for-you")}
+            className="px-5 py-2 text-sm font-medium rounded-md transition-all"
+            style={
+              activeTab === "for-you"
+                ? { background: "#fff", color: "#0F172A", boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }
+                : { background: "transparent", color: "#64748B" }
+            }
+          >
+            For You
+          </button>
+        </div>
       </div>
 
       {activeTab === "for-you" ? (
         <ForYouPanel />
       ) : (
         <>
-          <div className="mt-6 border-y border-rule py-5 flex flex-col md:flex-row gap-3">
+          {/* Filter bar */}
+          <div className="mt-4 flex flex-col md:flex-row gap-2.5">
             <input
               value={q}
               onChange={handleFilterChange(setQ)}
               placeholder="Search by title, provider, or keyword…"
-              className="flex-1 bg-transparent border border-rule px-4 py-2.5 text-sm focus:border-forest outline-none"
+              className="input flex-1"
             />
             <select
               value={type}
               onChange={handleFilterChange(setType)}
-              className="border border-rule px-3 py-2.5 text-sm bg-paper"
+              className="input md:w-44"
             >
               {TYPES.map((t) => (
-                <option key={t.value} value={t.value}>
-                  {t.label}
-                </option>
+                <option key={t.value} value={t.value}>{t.label}</option>
               ))}
             </select>
             <select
               value={degreeLevel}
               onChange={handleFilterChange(setDegreeLevel)}
-              className="border border-rule px-3 py-2.5 text-sm bg-paper"
+              className="input md:w-36"
             >
               {DEGREE_LEVELS.map((d) => (
-                <option key={d.value} value={d.value}>
-                  {d.label}
-                </option>
+                <option key={d.value} value={d.value}>{d.label}</option>
               ))}
             </select>
             <input
               value={country}
               onChange={handleFilterChange(setCountry)}
               placeholder="Country"
-              className="w-full md:w-40 bg-transparent border border-rule px-4 py-2.5 text-sm focus:border-forest outline-none"
+              className="input md:w-36"
             />
           </div>
 
-          <div className="mt-10">
-            {loading && <p className="text-slate font-mono text-sm">Loading the catalogue…</p>}
+          <div className="mt-8">
+            {loading && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                {[...Array(6)].map((_, i) => (
+                  <div key={i} className="case-card p-5 animate-pulse h-44">
+                    <div className="h-3 bg-rule rounded w-1/3 mb-4" />
+                    <div className="h-5 bg-rule rounded w-4/5 mb-2" />
+                    <div className="h-3 bg-rule rounded w-1/2 mb-4" />
+                    <div className="h-3 bg-rule rounded w-full" />
+                  </div>
+                ))}
+              </div>
+            )}
             {error && <p className="text-alert text-sm">{error}</p>}
             {!loading && !error && opportunities.length === 0 && (
-              <p className="text-slate">No opportunities match those filters yet. Try widening your search.</p>
+              <p className="text-slate text-sm">No opportunities match those filters. Try widening your search.</p>
             )}
 
             {pagination && !loading && (
@@ -376,18 +469,20 @@ export default function HomePage() {
               </p>
             )}
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-              {opportunities.map((o) => (
-                <OpportunityCard key={o._id} opportunity={o} />
-              ))}
-            </div>
+            {!loading && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                {opportunities.map((o) => (
+                  <OpportunityCard key={o._id} opportunity={o} />
+                ))}
+              </div>
+            )}
 
             {pagination && pagination.pages > 1 && (
               <div className="mt-10 flex items-center justify-center gap-2">
                 <button
                   onClick={() => setPage((p) => Math.max(1, p - 1))}
                   disabled={page === 1 || loading}
-                  className="border border-rule px-4 py-2 text-sm font-mono text-ink-soft hover:border-forest hover:text-forest disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                  className="btn-secondary text-sm px-4 py-2 disabled:opacity-30"
                 >
                   ← Prev
                 </button>
@@ -407,10 +502,10 @@ export default function HomePage() {
                         key={p}
                         onClick={() => setPage(p as number)}
                         disabled={loading}
-                        className={`w-9 h-9 text-sm font-mono border transition-colors disabled:opacity-50 ${
+                        className={`w-9 h-9 text-sm font-mono rounded-md transition-colors disabled:opacity-50 ${
                           page === p
-                            ? "border-forest bg-forest text-paper"
-                            : "border-rule text-ink-soft hover:border-forest hover:text-forest"
+                            ? "bg-forest text-white"
+                            : "border border-rule text-ink-soft hover:border-forest hover:text-forest"
                         }`}
                       >
                         {p}
@@ -421,7 +516,7 @@ export default function HomePage() {
                 <button
                   onClick={() => setPage((p) => Math.min(pagination.pages, p + 1))}
                   disabled={page === pagination.pages || loading}
-                  className="border border-rule px-4 py-2 text-sm font-mono text-ink-soft hover:border-forest hover:text-forest disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                  className="btn-secondary text-sm px-4 py-2 disabled:opacity-30"
                 >
                   Next →
                 </button>

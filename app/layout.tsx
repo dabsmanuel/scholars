@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Fraunces, Source_Serif_4, IBM_Plex_Mono } from "next/font/google";
+import { Fraunces, Plus_Jakarta_Sans, IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/lib/auth-context";
 import NavBar from "@/components/NavBar";
@@ -11,9 +11,9 @@ const display = Fraunces({
   variable: "--font-display",
 });
 
-const body = Source_Serif_4({
+const body = Plus_Jakarta_Sans({
   subsets: ["latin"],
-  weight: ["400", "500", "600"],
+  weight: ["400", "500", "600", "700"],
   variable: "--font-body",
 });
 

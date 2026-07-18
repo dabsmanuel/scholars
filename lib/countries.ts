@@ -159,9 +159,9 @@ export const COUNTRIES: Country[] = [
   { code: "ZW", name: "Zimbabwe" },
 ];
 
-// Countries routed to Paystack
+// All African country codes — routed to Paystack (Nigeria included)
 const PAYSTACK_COUNTRY_CODES = new Set([
-  "GH","KE","ZA","RW","CI","EG","CM","TZ","UG","ZM","ET","SN","MA",
+  "NG","GH","KE","ZA","RW","CI","EG","CM","TZ","UG","ZM","ET","SN","MA",
   "TN","BJ","BF","BI","TD","CF","CG","CD","DJ","ER","SZ","GA","GM","GN",
   "GW","KM","LS","LR","LY","MG","MW","ML","MR","MU","MZ","NA","NE","SC",
   "SL","SO","SS","SD","TG","ZW","AO","BW","CV","GQ","DZ",

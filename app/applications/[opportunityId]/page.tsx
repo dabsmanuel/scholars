@@ -28,6 +28,7 @@ export default function ApplicationCoachingPage() {
 
   const [essayTitle, setEssayTitle] = useState("");
   const [essayContent, setEssayContent] = useState("");
+  const [selectedPromptId, setSelectedPromptId] = useState<string>("");
   const [submittingEssay, setSubmittingEssay] = useState(false);
 
   useEffect(() => {
@@ -183,10 +184,12 @@ export default function ApplicationCoachingPage() {
       const data = await api.post<{ application: Application }>(`/applications/${opportunityId}/essays`, {
         title: essayTitle,
         content: essayContent,
+        promptId: selectedPromptId || undefined,
       });
       setApplication(data.application);
       setEssayTitle("");
       setEssayContent("");
+      setSelectedPromptId("");
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Couldn't review that draft right now.");
     } finally {
@@ -403,7 +406,7 @@ export default function ApplicationCoachingPage() {
                     </div>
                   )}
                   <div className="mt-3">
-                    <p className="text-xs font-mono uppercase text-slate mb-1.5">Gap from the typical winner</p>
+                    <p className="text-xs font-mono uppercase text-slate mb-1.5">What strong applicants typically have</p>
                     <p className="text-sm text-ink-soft leading-relaxed">{pos.gapFromWinner}</p>
                   </div>
                 </div>
@@ -483,34 +486,109 @@ export default function ApplicationCoachingPage() {
             ) : (
             <>
             <p className="text-ink-soft mt-3">
-              Paste a draft of your personal statement or essay and get specific, actionable feedback
-              against this opportunity's requirements and your own CV.
+              Paste a draft and get specific, actionable feedback against this opportunity's requirements and your CV.
             </p>
 
-            <form onSubmit={handleSubmitEssay} className="mt-4 space-y-3">
-              <input
-                required
-                value={essayTitle}
-                onChange={(e) => setEssayTitle(e.target.value)}
-                placeholder="Draft title, e.g. 'Personal Statement — v1'"
-                className="w-full border border-rule px-4 py-2.5 bg-transparent focus:border-forest outline-none text-sm"
-              />
-              <textarea
-                required
-                value={essayContent}
-                onChange={(e) => setEssayContent(e.target.value)}
-                rows={10}
-                placeholder="Paste your draft here…"
-                className="w-full border border-rule px-4 py-3 bg-transparent focus:border-forest outline-none text-sm leading-relaxed"
-              />
-              <button
-                type="submit"
-                disabled={submittingEssay}
-                className="bg-forest text-paper px-5 py-2.5 text-sm hover:bg-forest-light transition-colors disabled:opacity-60"
-              >
-                {submittingEssay ? "Reviewing your draft…" : "Submit for review"}
-              </button>
-            </form>
+            {(() => {
+              const prompts = opportunity.essayPrompts ?? [];
+              const activePrompt = prompts.find((p) => p.promptId === selectedPromptId) ?? null;
+              const charCount = essayContent.length;
+              const wordCount = essayContent.trim().split(/\s+/).filter(Boolean).length;
+              const charLimit = activePrompt?.maxCharacters;
+              const wordLimit = activePrompt?.maxWords;
+              const overChar = charLimit ? charCount > charLimit : false;
+              const overWord = wordLimit ? wordCount > wordLimit : false;
+              const isOver = overChar || overWord;
+
+              return (
+                <form onSubmit={handleSubmitEssay} className="mt-4 space-y-3">
+                  {prompts.length > 0 && (
+                    <div>
+                      <label className="block text-xs font-mono text-slate mb-1.5 uppercase tracking-widest">Essay prompt</label>
+                      <select
+                        value={selectedPromptId}
+                        onChange={(e) => {
+                          setSelectedPromptId(e.target.value);
+                          const p = prompts.find((p) => p.promptId === e.target.value);
+                          if (p) setEssayTitle(p.label);
+                        }}
+                        className="w-full border border-rule px-3 py-2.5 bg-transparent focus:border-forest outline-none text-sm"
+                      >
+                        <option value="">— Select a prompt (or leave blank for general) —</option>
+                        {prompts.map((p) => (
+                          <option key={p.promptId} value={p.promptId}>
+                            {p.label}
+                            {p.maxCharacters ? ` · max ${p.maxCharacters.toLocaleString()} characters` : ""}
+                            {p.maxWords ? ` · max ${p.maxWords} words` : ""}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+
+                  {activePrompt && (
+                    <div className="border-l-4 border-brass bg-amber-50 p-4">
+                      <p className="text-xs font-mono text-brass uppercase tracking-widest mb-1">{activePrompt.label}</p>
+                      <p className="text-sm text-ink leading-relaxed">{activePrompt.question}</p>
+                      {activePrompt.guidance && (
+                        <p className="text-xs text-slate mt-2 italic">{activePrompt.guidance}</p>
+                      )}
+                      <div className="flex flex-wrap gap-4 mt-3">
+                        {charLimit && (
+                          <p className={`text-xs font-mono ${overChar ? "text-alert font-semibold" : "text-slate"}`}>
+                            {charCount.toLocaleString()} / {charLimit.toLocaleString()} characters
+                            {overChar ? ` — ${(charCount - charLimit).toLocaleString()} over limit` : ""}
+                          </p>
+                        )}
+                        {wordLimit && (
+                          <p className={`text-xs font-mono ${overWord ? "text-alert font-semibold" : "text-slate"}`}>
+                            {wordCount} / {wordLimit} words
+                            {overWord ? ` — ${wordCount - wordLimit} over limit` : ""}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  <input
+                    required
+                    value={essayTitle}
+                    onChange={(e) => setEssayTitle(e.target.value)}
+                    placeholder="Draft title, e.g. 'Personal Statement — v1'"
+                    className="w-full border border-rule px-4 py-2.5 bg-transparent focus:border-forest outline-none text-sm"
+                  />
+                  <div className="relative">
+                    <textarea
+                      required
+                      value={essayContent}
+                      onChange={(e) => setEssayContent(e.target.value)}
+                      rows={12}
+                      placeholder="Paste your draft here…"
+                      className={`w-full border px-4 py-3 bg-transparent outline-none text-sm leading-relaxed ${isOver ? "border-alert focus:border-alert" : "border-rule focus:border-forest"}`}
+                    />
+                    {!activePrompt && essayContent.length > 0 && (
+                      <p className="text-xs font-mono text-slate mt-1 text-right">
+                        {charCount.toLocaleString()} characters · {wordCount} words
+                      </p>
+                    )}
+                  </div>
+
+                  {isOver && (
+                    <p className="text-xs text-alert font-mono">
+                      Your draft exceeds the limit — trim it before submitting. Review will still flag this.
+                    </p>
+                  )}
+
+                  <button
+                    type="submit"
+                    disabled={submittingEssay}
+                    className="bg-forest text-paper px-5 py-2.5 text-sm hover:bg-forest-light transition-colors disabled:opacity-60"
+                  >
+                    {submittingEssay ? "Reviewing your draft…" : "Submit for review"}
+                  </button>
+                </form>
+              );
+            })()}
 
             {application && application.essayDrafts.length > 0 && (
               <div className="mt-8 space-y-6">

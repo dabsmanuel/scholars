@@ -47,6 +47,70 @@ export interface Subscription {
   status: "active" | "past_due" | "canceled" | "trialing";
   gateway?: "stripe" | "paystack";
   currentPeriodEnd?: string;
+  trialStartedAt?: string;
+}
+
+export interface Celebration {
+  _id: string;
+  displayName: string;
+  country?: string;
+  opportunityTitle: string;
+  opportunityProvider?: string;
+  awardType: string;
+  message: string;
+  isFeatured: boolean;
+  createdAt: string;
+}
+
+export interface TestScores {
+  ielts?: number;
+  toefl?: number;
+  gre?: number;
+  gmat?: number;
+  sat?: number;
+  duolingo?: number;
+}
+
+export interface UserProfile {
+  targetCountries: string[];
+  targetDegreeLevel?: string;
+  targetStartDate?: string;
+  annualBudgetUSD?: number;
+  testScores?: TestScores;
+  updatedAt?: string;
+}
+
+export interface ReadinessDimension {
+  id: string;
+  label: string;
+  score: number;
+  max: number;
+  feedback: string;
+  actions: string[];
+}
+
+export interface ReadinessScore {
+  overall: number;
+  dimensions: ReadinessDimension[];
+  topActions: { action: string; impact: "high" | "medium" | "low" }[];
+  generatedAt: string;
+  cvParsedAt?: string;
+  profileUpdatedAt?: string;
+}
+
+export interface RoadmapWeek {
+  week: number;
+  label: string;
+  tasks: string[];
+  milestone?: string;
+}
+
+export interface Roadmap {
+  title: string;
+  overview: string;
+  weeks: RoadmapWeek[];
+  generatedAt: string;
+  profileUpdatedAt?: string;
 }
 
 export interface User {
@@ -60,6 +124,9 @@ export interface User {
   subscription: Subscription;
   coachingUsed: number;
   isAdmin: boolean;
+  profile?: UserProfile;
+  readinessCache?: ReadinessScore;
+  roadmapCache?: Roadmap;
 }
 
 export type OpportunityType = "scholarship" | "study_program" | "immigration_pathway" | "incubator" | "fellowship";
@@ -70,6 +137,15 @@ export interface Requirement {
   category: "academic" | "language" | "experience" | "citizenship" | "financial" | "other";
   isHard: boolean;
   detail?: string;
+}
+
+export interface EssayPrompt {
+  promptId: string;
+  label: string;
+  question: string;
+  maxCharacters?: number;
+  maxWords?: number;
+  guidance?: string;
 }
 
 export interface Opportunity {
@@ -87,6 +163,7 @@ export interface Opportunity {
   objectives: string;
   eligibilitySummary: string;
   requirements: Requirement[];
+  essayPrompts?: EssayPrompt[];
   strongApplicantProfile?: string;
   officialUrl: string;
   isActive: boolean;
@@ -146,4 +223,64 @@ export interface Application {
   essayDrafts: EssayDraft[];
   status: "draft" | "coaching_generated" | "in_review" | "submitted" | "outcome_recorded";
   outcome?: "pending" | "awarded" | "rejected" | "waitlisted";
+}
+
+export interface AnswerFeedback {
+  score: number;
+  strengths: string[];
+  improvements: string[];
+  modelAnswer: string;
+}
+
+export interface InterviewQuestion {
+  question: string;
+  context: string;
+  answer?: string;
+  feedback?: AnswerFeedback;
+  answeredAt?: string;
+}
+
+export interface Interview {
+  _id: string;
+  opportunity: string;
+  opportunityTitle: string;
+  opportunityProvider: string;
+  questions: InterviewQuestion[];
+  overallScore?: number;
+  overallFeedback?: string;
+  status: "in_progress" | "completed";
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CountryGuide {
+  code: string;
+  name: string;
+  flag: string;
+  tagline: string;
+  overview: string;
+  scholarshipCulture: string;
+  livingCosts: string;
+  visaProcess: string;
+  topUniversities: string[];
+  popularScholarships: string[];
+  bestFor: string[];
+  avgMonthlyExpensesUSD: number;
+  officialLanguage: string;
+  applicationLanguage: string;
+  requiresLanguageTest: boolean;
+  commonLanguageTests: string[];
+  intakeMonths: string[];
+  pros: string[];
+  cons: string[];
+}
+
+export interface CountrySummary {
+  code: string;
+  name: string;
+  flag: string;
+  tagline: string;
+  bestFor: string[];
+  avgMonthlyExpensesUSD: number;
+  applicationLanguage: string;
 }

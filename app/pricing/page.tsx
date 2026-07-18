@@ -11,22 +11,43 @@ const STRIPE_ANNUAL = process.env.NEXT_PUBLIC_STRIPE_PRICE_ANNUAL!;
 const PAYSTACK_MONTHLY = process.env.NEXT_PUBLIC_PAYSTACK_PLAN_MONTHLY!;
 const PAYSTACK_ANNUAL = process.env.NEXT_PUBLIC_PAYSTACK_PLAN_ANNUAL!;
 
+const FREE_FEATURES = [
+  "Browse the full scholarship catalogue",
+  "Country guides for 10+ destinations",
+  "Save opportunities and track status",
+  "CV upload and parsing",
+  "Dashboard and deadline tracker",
+  "Readiness Score — one calculation",
+  "Mentor — 5 questions to try it",
+];
+
+const PRO_FEATURES = [
+  "Everything in Free",
+  "Mentor — unlimited conversations",
+  "My Roadmap — week-by-week application plan",
+  "Mock Interview — practice with feedback",
+  "For You — opportunities matched to your CV",
+  "Readiness Score — unlimited refreshes",
+  "Application coaching per opportunity",
+  "7-day free trial — no card required",
+];
+
 export default function PricingPage() {
   const { user } = useAuth();
   const router = useRouter();
+  const [billing, setBilling] = useState<"monthly" | "annual">("annual");
   const [loading, setLoading] = useState<"monthly" | "annual" | "portal" | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const isPro = user?.subscription?.plan === "pro" && user?.subscription?.status === "active";
   const isPaystackUser = user?.subscription?.gateway === "paystack";
-
-  // Determine gateway from the registered country code
   const countryCode = user?.country || "";
   const usePaystack = usesPaystack(countryCode);
   const countryName = COUNTRIES.find((c) => c.code === countryCode)?.name;
 
-  async function handleStripeCheckout(priceId: string, type: "monthly" | "annual") {
+  async function handleStripeCheckout(type: "monthly" | "annual") {
     if (!user) { router.push("/register"); return; }
+    const priceId = type === "monthly" ? STRIPE_MONTHLY : STRIPE_ANNUAL;
     setLoading(type);
     setError(null);
     try {
@@ -38,8 +59,9 @@ export default function PricingPage() {
     }
   }
 
-  async function handlePaystackCheckout(planCode: string, type: "monthly" | "annual") {
+  async function handlePaystackCheckout(type: "monthly" | "annual") {
     if (!user) { router.push("/register"); return; }
+    const planCode = type === "monthly" ? PAYSTACK_MONTHLY : PAYSTACK_ANNUAL;
     setLoading(type);
     setError(null);
     try {
@@ -74,61 +96,105 @@ export default function PricingPage() {
     }
   }
 
-  const isAfrican = usePaystack;
+  function handleCheckout(type: "monthly" | "annual") {
+    if (usePaystack) handlePaystackCheckout(type);
+    else handleStripeCheckout(type);
+  }
 
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 py-12 sm:py-20">
-      <p className="font-mono text-xs tracking-widest uppercase text-brass text-center">Pricing</p>
-      <h1 className="font-display text-3xl sm:text-5xl text-ink mt-2 text-center leading-tight">
-        One clear price.<br />No feature mazes.
-      </h1>
-      <p className="text-ink-soft mt-4 text-center max-w-xl mx-auto leading-relaxed">
-        Free to explore. Upgrade when you're ready to build a real strategy.
-      </p>
+    <div className="max-w-4xl mx-auto px-4 sm:px-6 py-14 sm:py-20">
+
+      {/* Header */}
+      <div className="text-center max-w-xl mx-auto">
+        <h1 className="font-display text-4xl sm:text-5xl text-ink leading-tight">
+          Better prepared.<br />Better odds.
+        </h1>
+        <p className="text-ink-soft mt-4 leading-relaxed">
+          Passage doesn't decide who gets the scholarship — committees do. What we do is help you show up as the strongest version of yourself on paper.
+        </p>
+      </div>
+
+      {/* Honest positioning */}
+      <div className="mt-10 case-card p-6 max-w-2xl mx-auto">
+        <p className="font-mono text-xs text-slate uppercase tracking-widest mb-3">What Passage actually does</p>
+        <div className="grid sm:grid-cols-3 gap-4 text-center">
+          {[
+            { icon: "📋", label: "Closes gaps", desc: "Shows you exactly what strong applicants have that you don't — yet." },
+            { icon: "🎯", label: "Saves time", desc: "Surfaces opportunities you're actually competitive for, not just broadly eligible." },
+            { icon: "💪", label: "Builds strength", desc: "Helps you prepare, practise, and write at your best before you submit." },
+          ].map(({ icon, label, desc }) => (
+            <div key={label}>
+              <p className="text-2xl mb-2">{icon}</p>
+              <p className="text-sm font-medium text-ink">{label}</p>
+              <p className="text-xs text-slate mt-1 leading-relaxed">{desc}</p>
+            </div>
+          ))}
+        </div>
+        <p className="text-xs text-slate font-mono mt-5 text-center border-t border-rule pt-4">
+          Final scholarship decisions rest entirely with the awarding committee. No platform can guarantee an outcome.
+        </p>
+      </div>
+
+      {/* Billing toggle */}
+      <div className="mt-12 flex justify-center">
+        <div
+          className="inline-flex rounded-lg p-1 gap-1"
+          style={{ background: "#EEF2FF" }}
+        >
+          <button
+            onClick={() => setBilling("monthly")}
+            className="px-5 py-2 text-sm font-medium rounded-md transition-all"
+            style={
+              billing === "monthly"
+                ? { background: "#fff", color: "#0F172A", boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }
+                : { background: "transparent", color: "#64748B" }
+            }
+          >
+            Monthly
+          </button>
+          <button
+            onClick={() => setBilling("annual")}
+            className="px-5 py-2 text-sm font-medium rounded-md transition-all"
+            style={
+              billing === "annual"
+                ? { background: "#fff", color: "#0F172A", boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }
+                : { background: "transparent", color: "#64748B" }
+            }
+          >
+            Annual
+            <span className="ml-1.5 text-xs font-mono text-brass">save 35%</span>
+          </button>
+        </div>
+      </div>
 
       {countryName && (
         <p className="text-center text-xs font-mono text-slate mt-3">
-          Payment via {isAfrican ? "Paystack" : "Stripe"} · {countryName}
+          Payment via {usePaystack ? "Paystack" : "Stripe"} · {countryName}
         </p>
       )}
 
-      {error && <p className="text-alert text-sm text-center mt-6">{error}</p>}
+      {error && <p className="text-alert text-sm text-center mt-4">{error}</p>}
 
-      <div className="mt-12 grid sm:grid-cols-2 gap-6">
+      {/* Plans */}
+      <div className="mt-8 grid sm:grid-cols-2 gap-6">
+
         {/* Free */}
         <div className="case-card p-8 flex flex-col">
           <p className="font-mono text-xs tracking-widest uppercase text-slate">Free</p>
           <p className="font-display text-4xl text-ink mt-2">$0</p>
-          <p className="text-ink-soft text-sm mt-1">Forever</p>
+          <p className="text-ink-soft text-sm mt-1">Forever. No card needed.</p>
 
-          <ul className="mt-6 space-y-3 flex-1">
-            {[
-              "Browse all opportunities",
-              "Save unlimited opportunities",
-              "1 coaching generation to try the product",
-              "Public opportunity breakdowns",
-            ].map((f) => (
-              <li key={f} className="flex gap-2 text-sm text-ink-soft">
-                <span className="text-forest mt-0.5">✓</span>{f}
-              </li>
-            ))}
-            {[
-              "Personalised CV matching (For You)",
-              "Unlimited coaching generations",
-              "Essay review & feedback",
-            ].map((f) => (
-              <li key={f} className="flex gap-2 text-sm text-slate line-through">
-                <span className="text-rule mt-0.5">×</span>{f}
+          <ul className="mt-6 space-y-2.5 flex-1">
+            {FREE_FEATURES.map((f) => (
+              <li key={f} className="flex gap-2.5 text-sm text-ink-soft">
+                <span className="text-forest mt-0.5 shrink-0">✓</span>{f}
               </li>
             ))}
           </ul>
 
           <div className="mt-8">
             {!user ? (
-              <button
-                onClick={() => router.push("/register")}
-                className="w-full border border-rule text-ink-soft px-5 py-2.5 text-sm"
-              >
+              <button onClick={() => router.push("/register")} className="btn-secondary w-full">
                 Get started free
               </button>
             ) : (
@@ -140,39 +206,46 @@ export default function PricingPage() {
         </div>
 
         {/* Pro */}
-        <div className="case-card p-8 flex flex-col" style={{ borderColor: "#1E4638", borderWidth: 1 }}>
-          <p className="font-mono text-xs tracking-widest uppercase text-forest">Pro</p>
-          <div className="mt-2 flex flex-col gap-1">
-            <div>
-              <span className="font-display text-4xl text-ink">$12</span>
-              <span className="text-ink-soft text-sm"> / month</span>
-            </div>
-            <p className="text-brass text-xs font-mono">or $99/year — save 31%</p>
+        <div className="case-card p-8 flex flex-col" style={{ borderColor: "#2563EB", borderWidth: "1.5px" }}>
+          <div className="flex items-center justify-between">
+            <p className="font-mono text-xs tracking-widest uppercase text-forest">Pro</p>
+            <span className="badge bg-blue-50 text-forest border border-blue-200">7-day free trial</span>
           </div>
 
-          <ul className="mt-6 space-y-3 flex-1">
-            {[
-              "Everything in Free",
-              "Personalised CV matching — ranked For You tab",
-              "Unlimited coaching generations",
-              "Essay review with line-by-line feedback",
-              "Coaching refresh when CV changes",
-              "Priority AI queue",
-            ].map((f) => (
-              <li key={f} className="flex gap-2 text-sm text-ink-soft">
-                <span className="text-forest mt-0.5">✓</span>{f}
+          <div className="mt-3">
+            {billing === "monthly" ? (
+              <>
+                <span className="font-display text-4xl text-ink">$7</span>
+                <span className="text-ink-soft text-sm"> / month</span>
+                <p className="text-xs text-slate font-mono mt-1">or $55/year — save 35%</p>
+              </>
+            ) : (
+              <>
+                <span className="font-display text-4xl text-ink">$55</span>
+                <span className="text-ink-soft text-sm"> / year</span>
+                <p className="text-xs text-slate font-mono mt-1">
+                  <span className="line-through text-slate/60 mr-1">$84</span>
+                  $4.58/month · billed annually
+                </p>
+              </>
+            )}
+          </div>
+
+          <ul className="mt-6 space-y-2.5 flex-1">
+            {PRO_FEATURES.map((f) => (
+              <li key={f} className="flex gap-2.5 text-sm text-ink-soft">
+                <span className="text-forest mt-0.5 shrink-0">✓</span>{f}
               </li>
             ))}
           </ul>
 
           <div className="mt-8 flex flex-col gap-3">
             {isPro ? (
-              // Manage existing subscription
               isPaystackUser ? (
                 <button
                   onClick={handlePaystackCancel}
                   disabled={loading !== null}
-                  className="w-full border border-rule text-ink-soft px-5 py-2.5 text-sm hover:border-alert hover:text-alert transition-colors disabled:opacity-60"
+                  className="btn-secondary w-full disabled:opacity-60"
                 >
                   {loading === "portal" ? "Processing…" : "Cancel subscription"}
                 </button>
@@ -180,51 +253,22 @@ export default function PricingPage() {
                 <button
                   onClick={handleStripePortal}
                   disabled={loading !== null}
-                  className="w-full border border-forest text-forest px-5 py-2.5 text-sm hover:bg-forest hover:text-paper transition-colors disabled:opacity-60"
+                  className="btn-secondary w-full disabled:opacity-60"
                 >
                   {loading === "portal" ? "Redirecting…" : "Manage subscription"}
                 </button>
               )
-            ) : isAfrican ? (
-              // Paystack checkout
-              <>
-                <button
-                  onClick={() => handlePaystackCheckout(PAYSTACK_MONTHLY, "monthly")}
-                  disabled={loading !== null}
-                  className="w-full bg-forest text-paper px-5 py-2.5 text-sm hover:bg-forest-light transition-colors disabled:opacity-60"
-                >
-                  {loading === "monthly" ? "Redirecting…" : "Subscribe monthly — $12/mo"}
-                </button>
-                <button
-                  onClick={() => handlePaystackCheckout(PAYSTACK_ANNUAL, "annual")}
-                  disabled={loading !== null}
-                  className="w-full border border-brass text-brass px-5 py-2.5 text-sm hover:bg-brass hover:text-paper transition-colors disabled:opacity-60"
-                >
-                  {loading === "annual" ? "Redirecting…" : "Subscribe annually — $99/yr"}
-                </button>
-                <p className="text-xs text-slate font-mono text-center">
-                  Powered by Paystack · Pay in your local currency
-                </p>
-              </>
             ) : (
-              // Stripe checkout
               <>
                 <button
-                  onClick={() => handleStripeCheckout(STRIPE_MONTHLY, "monthly")}
+                  onClick={() => handleCheckout(billing)}
                   disabled={loading !== null}
-                  className="w-full bg-forest text-paper px-5 py-2.5 text-sm hover:bg-forest-light transition-colors disabled:opacity-60"
+                  className="btn-primary w-full disabled:opacity-60"
                 >
-                  {loading === "monthly" ? "Redirecting…" : "Subscribe monthly — $12/mo"}
-                </button>
-                <button
-                  onClick={() => handleStripeCheckout(STRIPE_ANNUAL, "annual")}
-                  disabled={loading !== null}
-                  className="w-full border border-brass text-brass px-5 py-2.5 text-sm hover:bg-brass hover:text-paper transition-colors disabled:opacity-60"
-                >
-                  {loading === "annual" ? "Redirecting…" : "Subscribe annually — $99/yr"}
+                  {loading ? "Redirecting…" : billing === "monthly" ? "Start free trial — $7/mo after" : "Start free trial — $55/yr after"}
                 </button>
                 <p className="text-xs text-slate font-mono text-center">
-                  Powered by Stripe · Cancel anytime
+                  7 days free · No card required to trial · Cancel anytime
                 </p>
               </>
             )}
@@ -232,7 +276,42 @@ export default function PricingPage() {
         </div>
       </div>
 
-      <p className="text-center text-xs text-slate font-mono mt-10">
+      {/* FAQ */}
+      <div className="mt-16 max-w-2xl mx-auto space-y-5">
+        <h2 className="font-display text-2xl text-ink">Common questions</h2>
+        {[
+          {
+            q: "Does Passage guarantee I'll get a scholarship?",
+            a: "No — and any platform that claims otherwise should be treated with suspicion. Scholarship committees make final decisions based on their own criteria. Passage helps you understand those criteria, close the gaps in your profile, and submit the strongest application you can. That's all preparation can do — and it's worth a lot.",
+          },
+          {
+            q: "What does the 7-day free trial include?",
+            a: "Full Pro access — Mentor, Roadmap, Mock Interview, For You matching, and unlimited Readiness Score refreshes. No card needed to start the trial.",
+          },
+          {
+            q: "Can I pay in my local currency?",
+            a: "Yes. Students in African countries pay via Paystack in their local currency (Naira, Cedis, Shillings, etc.). All other users pay via Stripe in USD.",
+          },
+          {
+            q: "What's the difference between Free and Pro, practically?",
+            a: "Free lets you explore the catalogue, save opportunities, upload your CV, and get a taste of the mentor. Pro is where the preparation happens — your personalised plan, interview practice, coaching per opportunity, and unlimited mentor access.",
+          },
+          {
+            q: "What if I can't afford Pro?",
+            a: "Start with Free — it's genuinely useful on its own. Upgrade when you're ready to apply seriously, or when you've identified specific opportunities you want to prepare properly for.",
+          },
+        ].map(({ q, a }) => (
+          <details key={q} className="case-card p-5 group">
+            <summary className="text-sm font-medium text-ink cursor-pointer list-none flex items-center justify-between gap-3">
+              {q}
+              <span className="text-slate text-xs shrink-0 group-open:rotate-180 transition-transform">▼</span>
+            </summary>
+            <p className="text-sm text-ink-soft mt-3 leading-relaxed">{a}</p>
+          </details>
+        ))}
+      </div>
+
+      <p className="text-center text-xs text-slate font-mono mt-12">
         Secure payments · Cancel anytime · No hidden fees
       </p>
     </div>

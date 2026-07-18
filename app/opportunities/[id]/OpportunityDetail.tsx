@@ -7,6 +7,25 @@ import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { Opportunity } from "@/lib/types";
 
+function detectScamFlags(opp: Opportunity): string[] {
+  const flags: string[] = [];
+  const text = `${opp.title} ${opp.objectives} ${opp.eligibilitySummary}`.toLowerCase();
+
+  if (!opp.officialUrl || opp.officialUrl === "https://example.com") {
+    flags.push("No verified official URL provided — confirm this scholarship exists independently before applying.");
+  }
+  if (opp.requirements.some((r) => r.category === "financial" && /fee|pay|payment|deposit/i.test(r.label + " " + (r.detail || "")))) {
+    flags.push("An application fee is mentioned. Legitimate scholarships do not charge fees to apply.");
+  }
+  if (/guaranteed|100% success|no gpa|no ielts required|everyone qualifies/i.test(text)) {
+    flags.push("Language suggesting guaranteed admission or zero requirements is a common fraud signal.");
+  }
+  if (opp.requirements.length === 0 && opp.eligibilitySummary.length < 80) {
+    flags.push("Very limited eligibility information. Legitimate scholarships publish clear, detailed criteria.");
+  }
+  return flags;
+}
+
 const TYPE_LABELS: Record<string, string> = {
   scholarship: "Scholarship",
   study_program: "Study Program",
@@ -62,9 +81,27 @@ export default function OpportunityDetail({ initial }: { initial: Opportunity })
   }
 
   const hasBreakdown = Boolean(opportunity.strongApplicantProfile);
+  const scamFlags = detectScamFlags(opportunity);
 
   return (
     <div className="max-w-5xl mx-auto px-6 py-14">
+      {scamFlags.length > 0 && (
+        <div className="mb-8 border border-alert bg-alert/5 p-4" style={{ borderRadius: "6px" }}>
+          <p className="font-mono text-xs tracking-widest uppercase text-alert mb-2">⚠ Verify before applying</p>
+          <ul className="space-y-1.5">
+            {scamFlags.map((flag, i) => (
+              <li key={i} className="text-sm text-ink-soft flex gap-2">
+                <span className="text-alert shrink-0">→</span> {flag}
+              </li>
+            ))}
+          </ul>
+          <p className="text-xs text-slate mt-3">
+            Always verify through official government or university websites. If something feels wrong,{" "}
+            <Link href="/mentor" className="text-forest underline">ask your mentor</Link>.
+          </p>
+        </div>
+      )}
+
       <div className="flex flex-wrap items-center gap-3">
         <span className="stamp text-forest border-forest">{TYPE_LABELS[opportunity.type]}</span>
         <span className="text-xs text-slate font-mono">{opportunity.country}</span>
@@ -91,6 +128,12 @@ export default function OpportunityDetail({ initial }: { initial: Opportunity })
           className="bg-forest text-paper px-5 py-2.5 text-sm hover:bg-forest-light transition-colors"
         >
           Get personalized coaching →
+        </Link>
+        <Link
+          href={`/interview?opportunity=${opportunity._id}`}
+          className="border border-rule text-ink-soft px-5 py-2.5 text-sm hover:border-forest hover:text-forest transition-colors"
+        >
+          Practice interview
         </Link>
         <a
           href={opportunity.officialUrl}

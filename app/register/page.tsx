@@ -36,81 +36,83 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="max-w-md mx-auto px-6 py-20">
-      <p className="font-mono text-xs tracking-widest uppercase text-brass">Open a Case File</p>
-      <h1 className="font-display text-3xl text-ink mt-2">Create your account</h1>
+    <div className="min-h-[80vh] flex items-center justify-center px-6 py-16">
+      <div className="w-full max-w-sm">
+        <h1 className="font-display text-3xl text-ink">Create your account</h1>
+        <p className="text-ink-soft mt-1.5 text-sm">
+          Free to start. Upload your CV to unlock personalized matches.
+        </p>
 
-      <form onSubmit={handleSubmit} className="mt-8 space-y-4">
-        <div>
-          <label className="block text-sm text-ink-soft mb-1.5">Full name</label>
-          <input
-            required
-            value={fullName}
-            onChange={(e) => setFullName(e.target.value)}
-            className="w-full border border-rule px-4 py-2.5 bg-transparent focus:border-forest outline-none"
-          />
-        </div>
-        <div>
-          <label className="block text-sm text-ink-soft mb-1.5">Email</label>
-          <input
-            type="email"
-            required
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="w-full border border-rule px-4 py-2.5 bg-transparent focus:border-forest outline-none"
-          />
-        </div>
-        <div>
-          <label className="block text-sm text-ink-soft mb-1.5">Password</label>
-          <input
-            type="password"
-            required
-            minLength={8}
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="w-full border border-rule px-4 py-2.5 bg-transparent focus:border-forest outline-none"
-          />
-          <p className="text-xs text-slate mt-1">At least 8 characters.</p>
-        </div>
-        <div>
-          <label className="block text-sm text-ink-soft mb-1.5">
-            Country <span className="text-alert">*</span>
-          </label>
-          <select
-            required
-            value={country}
-            onChange={(e) => setCountry(e.target.value)}
-            className="w-full border border-rule px-4 py-2.5 bg-paper focus:border-forest outline-none text-sm"
-          >
-            <option value="">Select your country…</option>
-            {COUNTRIES.map((c) => (
-              <option key={c.code} value={c.code}>
-                {c.name}
-              </option>
-            ))}
-          </select>
-          <p className="text-xs text-slate mt-1">
-            Used to tailor your experience and payment options.
-          </p>
-        </div>
+        <form onSubmit={handleSubmit} className="mt-8 space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-ink mb-1.5">Full name</label>
+            <input
+              required
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+              className="input"
+              placeholder="Your name"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-ink mb-1.5">Email</label>
+            <input
+              type="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="input"
+              placeholder="you@example.com"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-ink mb-1.5">Password</label>
+            <input
+              type="password"
+              required
+              minLength={8}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="input"
+              placeholder="At least 8 characters"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-ink mb-1.5">Country</label>
+            <select
+              required
+              value={country}
+              onChange={(e) => setCountry(e.target.value)}
+              className="input"
+            >
+              <option value="">Select your country…</option>
+              {COUNTRIES.map((c) => (
+                <option key={c.code} value={c.code}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+            <p className="text-xs text-slate mt-1.5">Used to tailor payment options and local context.</p>
+          </div>
 
-        {error && <p className="text-alert text-sm">{error}</p>}
+          {error && (
+            <p className="text-alert text-sm bg-red-50 border border-red-200 px-3 py-2 rounded-md">
+              {error}
+            </p>
+          )}
 
-        <button
-          type="submit"
-          disabled={submitting}
-          className="w-full bg-forest text-paper py-3 font-medium hover:bg-forest-light transition-colors disabled:opacity-60"
-        >
-          {submitting ? "Creating account…" : "Create account"}
-        </button>
-      </form>
+          <button type="submit" disabled={submitting} className="btn-primary w-full mt-2">
+            {submitting ? "Creating account…" : "Create account"}
+          </button>
+        </form>
 
-      <p className="text-sm text-slate mt-6">
-        Already have an account?{" "}
-        <Link href="/login" className="text-forest underline">
-          Sign in
-        </Link>
-      </p>
+        <p className="text-sm text-slate mt-6 text-center">
+          Already have an account?{" "}
+          <Link href="/login" className="text-forest font-medium hover:underline">
+            Sign in
+          </Link>
+        </p>
+      </div>
     </div>
   );
 }
