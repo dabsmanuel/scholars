@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
-import { Application, Opportunity } from "@/lib/types";
+import { Application, Opportunity, ReferenceLetter } from "@/lib/types";
 import UpgradePrompt from "@/components/UpgradePrompt";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
@@ -30,6 +30,13 @@ export default function ApplicationCoachingPage() {
   const [essayContent, setEssayContent] = useState("");
   const [selectedPromptId, setSelectedPromptId] = useState<string>("");
   const [submittingEssay, setSubmittingEssay] = useState(false);
+  const [rewritingEssayId, setRewritingEssayId] = useState<string | null>(null);
+
+  const [letterFile, setLetterFile] = useState<File | null>(null);
+  const [letterType, setLetterType] = useState<ReferenceLetter["letterType"]>("work");
+  const [refereeOrg, setRefereeOrg] = useState("");
+  const [uploadingLetter, setUploadingLetter] = useState(false);
+  const [rewritingLetterId, setRewritingLetterId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!authLoading && !user) router.push("/login");
@@ -197,6 +204,63 @@ export default function ApplicationCoachingPage() {
     }
   }
 
+  async function handleRewriteEssay(essayId: string) {
+    setRewritingEssayId(essayId);
+    setError(null);
+    try {
+      const data = await api.post<{ application: Application }>(
+        `/applications/${opportunityId}/essays/${essayId}/rewrite`,
+        {}
+      );
+      setApplication(data.application);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Couldn't generate rewrite right now.");
+    } finally {
+      setRewritingEssayId(null);
+    }
+  }
+
+  async function handleUploadLetter(e: React.FormEvent) {
+    e.preventDefault();
+    if (!letterFile) return;
+    setUploadingLetter(true);
+    setError(null);
+    try {
+      const formData = new FormData();
+      formData.append("document", letterFile);
+      formData.append("letterType", letterType);
+      if (refereeOrg.trim()) formData.append("refereeOrganization", refereeOrg.trim());
+      const data = await api.post<{ application: Application }>(
+        `/applications/${opportunityId}/reference-letters`,
+        formData
+      );
+      setApplication(data.application);
+      setLetterFile(null);
+      setRefereeOrg("");
+      setLetterType("work");
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Couldn't upload the letter right now.");
+    } finally {
+      setUploadingLetter(false);
+    }
+  }
+
+  async function handleRewriteLetter(letterId: string) {
+    setRewritingLetterId(letterId);
+    setError(null);
+    try {
+      const data = await api.post<{ application: Application }>(
+        `/applications/${opportunityId}/reference-letters/${letterId}/rewrite`,
+        {}
+      );
+      setApplication(data.application);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Couldn't generate the suggested draft right now.");
+    } finally {
+      setRewritingLetterId(null);
+    }
+  }
+
   if (authLoading || loading) {
     return <p className="max-w-4xl mx-auto px-6 py-20 text-slate font-mono text-sm">Loading case file…</p>;
   }
@@ -206,6 +270,7 @@ export default function ApplicationCoachingPage() {
   const needsCv = error?.toLowerCase().includes("upload your cv");
   const needsUpgradeCoaching = error?.startsWith("UPGRADE_REQUIRED:coaching");
   const needsUpgradeEssays = error?.startsWith("UPGRADE_REQUIRED:essays");
+  const needsUpgradeRefLetters = error?.startsWith("UPGRADE_REQUIRED:reference_letters");
   const coaching = application?.coaching;
   const isStale =
     !!coaching?.cvParsedAt &&
@@ -632,6 +697,57 @@ export default function ApplicationCoachingPage() {
                           <p className="text-xs font-mono uppercase text-brass">Authenticity</p>
                           <p className="text-ink-soft text-sm mt-1">{draft.feedback.authenticityNotes}</p>
                         </div>
+
+                        {!draft.rewrite && (
+                          <button
+                            type="button"
+                            disabled={rewritingEssayId === draft._id}
+                            onClick={() => handleRewriteEssay(draft._id)}
+                            className="text-sm text-forest border border-forest px-4 py-2 hover:bg-forest hover:text-paper transition-colors disabled:opacity-60"
+                          >
+                            {rewritingEssayId === draft._id ? "Rewriting in your voice…" : "Get AI rewrite"}
+                          </button>
+                        )}
+
+                        {draft.rewrite && (
+                          <div className="border-t border-rule pt-4 space-y-3">
+                            <div className="flex items-center justify-between gap-2">
+                              <p className="text-xs font-mono uppercase text-forest">Rewritten in your voice</p>
+                              <button
+                                type="button"
+                                onClick={() => navigator.clipboard.writeText(draft.rewrite!.content)}
+                                className="text-xs font-mono text-slate border border-rule px-2 py-1 hover:border-forest hover:text-forest transition-colors"
+                              >
+                                Copy
+                              </button>
+                            </div>
+                            <p className="text-xs text-slate italic leading-relaxed">{draft.rewrite.styleNotes}</p>
+                            <div className="border border-rule p-4 bg-paper">
+                              <p className="text-sm text-ink leading-relaxed whitespace-pre-line">{draft.rewrite.content}</p>
+                            </div>
+                            {draft.rewrite.changesApplied.length > 0 && (
+                              <div>
+                                <p className="text-xs font-mono text-slate uppercase mb-1.5">Changes applied</p>
+                                <ul className="space-y-1">
+                                  {draft.rewrite.changesApplied.map((c, i) => (
+                                    <li key={i} className="text-xs text-ink-soft flex gap-2">
+                                      <span className="text-forest shrink-0">✓</span>
+                                      {c}
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+                            <button
+                              type="button"
+                              disabled={rewritingEssayId === draft._id}
+                              onClick={() => handleRewriteEssay(draft._id)}
+                              className="text-xs text-slate underline disabled:opacity-60"
+                            >
+                              {rewritingEssayId === draft._id ? "Rewriting…" : "Regenerate rewrite"}
+                            </button>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
@@ -641,10 +757,182 @@ export default function ApplicationCoachingPage() {
             </>
             )}
           </section>
+
+          {opportunity.referenceLetterConfig && (
+            <section>
+              <h2 className="font-display text-xl sm:text-2xl text-ink border-b border-rule pb-2">Reference letters</h2>
+
+              <div className="mt-4 border-l-4 border-brass bg-amber-50 p-4">
+                <p className="text-xs font-mono text-brass uppercase tracking-widest mb-1">
+                  {opportunity.referenceLetterConfig.count} letter{opportunity.referenceLetterConfig.count !== 1 ? "s" : ""} required
+                </p>
+                <p className="text-sm text-ink-soft leading-relaxed">
+                  Upload each letter as a PDF once your referee has completed and signed it. We'll review it against the form questions and suggest improvements you can pass back to them.
+                </p>
+                <div className="mt-3">
+                  <p className="text-xs font-mono text-slate uppercase tracking-widest mb-2">Questions your referee must answer</p>
+                  <ol className="space-y-2">
+                    {opportunity.referenceLetterConfig.questions.map((q, i) => (
+                      <li key={i} className="flex gap-2 text-sm text-ink-soft">
+                        <span className="font-mono text-brass shrink-0">{i + 1}.</span>
+                        <span>
+                          {q.text}
+                          {q.optional && <em className="text-slate ml-1 not-italic"> (optional)</em>}
+                        </span>
+                      </li>
+                    ))}
+                  </ol>
+                </div>
+              </div>
+
+              {needsUpgradeRefLetters ? (
+                <UpgradePrompt feature="reference_letters" />
+              ) : (
+                <form onSubmit={handleUploadLetter} className="mt-5 space-y-3">
+                  <div className="grid sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-mono text-slate mb-1.5 uppercase tracking-widest">Letter type</label>
+                      <select
+                        value={letterType}
+                        onChange={(e) => setLetterType(e.target.value as ReferenceLetter["letterType"])}
+                        className="w-full border border-rule px-3 py-2.5 bg-transparent focus:border-forest outline-none text-sm"
+                      >
+                        <option value="work">Work experience reference</option>
+                        <option value="academic">Academic reference</option>
+                        <option value="other">Other</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-mono text-slate mb-1.5 uppercase tracking-widest">Referee's organisation (optional)</label>
+                      <input
+                        value={refereeOrg}
+                        onChange={(e) => setRefereeOrg(e.target.value)}
+                        placeholder="e.g. Ministry of Finance"
+                        className="w-full border border-rule px-3 py-2 bg-transparent focus:border-forest outline-none text-sm"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-mono text-slate mb-1.5 uppercase tracking-widest">Reference letter PDF</label>
+                    <input
+                      type="file"
+                      accept="application/pdf"
+                      onChange={(e) => setLetterFile(e.target.files?.[0] ?? null)}
+                      className="block w-full text-sm text-slate file:mr-4 file:py-2 file:px-4 file:border file:border-forest file:text-forest file:bg-transparent file:text-xs file:font-mono hover:file:bg-forest hover:file:text-paper file:transition-colors cursor-pointer"
+                    />
+                    <p className="text-xs text-slate mt-1">PDF only · max 8 MB</p>
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={uploadingLetter || !letterFile}
+                    className="bg-forest text-paper px-5 py-2.5 text-sm hover:bg-forest-light transition-colors disabled:opacity-60"
+                  >
+                    {uploadingLetter ? "Uploading & reviewing…" : "Upload & review"}
+                  </button>
+                </form>
+              )}
+
+              {(application?.referenceLetters ?? []).length > 0 && (
+                <div className="mt-8 space-y-6">
+                  {[...(application!.referenceLetters)].reverse().map((letter) => (
+                    <div key={letter._id} className="case-card p-5">
+                      <div className="flex flex-wrap items-start justify-between gap-2">
+                        <div>
+                          <p className="font-mono text-xs text-slate uppercase tracking-widest">
+                            {letter.letterType === "work" ? "Work reference" : letter.letterType === "academic" ? "Academic reference" : "Reference letter"}
+                          </p>
+                          <p className="font-display text-base text-ink mt-0.5 break-all">{letter.originalFileName}</p>
+                          {letter.refereeOrganization && (
+                            <p className="text-xs text-slate mt-0.5">{letter.refereeOrganization}</p>
+                          )}
+                        </div>
+                        <p className="text-xs font-mono text-slate shrink-0">{new Date(letter.uploadedAt).toLocaleDateString()}</p>
+                      </div>
+
+                      {letter.review && (
+                        <div className="mt-4 space-y-4">
+                          <div>
+                            <p className="text-xs font-mono uppercase text-brass">Assessment</p>
+                            <p className="text-ink-soft text-sm mt-1">{letter.review.overallAssessment}</p>
+                          </div>
+                          {letter.review.strengths.length > 0 && (
+                            <div>
+                              <p className="text-xs font-mono uppercase text-forest">Working well</p>
+                              <ul className="list-disc list-inside text-sm text-ink-soft mt-1 space-y-1">
+                                {letter.review.strengths.map((s, i) => <li key={i}>{s}</li>)}
+                              </ul>
+                            </div>
+                          )}
+                          {letter.review.issues.length > 0 && (
+                            <div>
+                              <p className="text-xs font-mono uppercase text-alert">To improve</p>
+                              <div className="mt-1 space-y-2">
+                                {letter.review.issues.map((issue, i) => (
+                                  <div key={i} className="border-l-2 border-alert pl-3">
+                                    <p className="text-xs text-slate">{issue.location}</p>
+                                    <p className="text-sm text-ink-soft">{issue.problem}</p>
+                                    <p className="text-sm text-forest mt-0.5">→ {issue.suggestion}</p>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                          {letter.review.complianceNotes && (
+                            <div>
+                              <p className="text-xs font-mono uppercase text-slate">Compliance</p>
+                              <p className="text-ink-soft text-sm mt-1">{letter.review.complianceNotes}</p>
+                            </div>
+                          )}
+
+                          {!letter.suggestedRewrite && (
+                            <button
+                              type="button"
+                              disabled={rewritingLetterId === letter._id}
+                              onClick={() => handleRewriteLetter(letter._id)}
+                              className="text-sm text-forest border border-forest px-4 py-2 hover:bg-forest hover:text-paper transition-colors disabled:opacity-60"
+                            >
+                              {rewritingLetterId === letter._id ? "Generating suggested draft…" : "Get suggested draft for referee"}
+                            </button>
+                          )}
+                        </div>
+                      )}
+
+                      {letter.suggestedRewrite && (
+                        <div className="mt-4 border-t border-rule pt-4 space-y-3">
+                          <div className="flex items-center justify-between gap-2">
+                            <p className="text-xs font-mono uppercase text-forest">Suggested letter draft for your referee</p>
+                            <button
+                              type="button"
+                              onClick={() => navigator.clipboard.writeText(letter.suggestedRewrite!.content)}
+                              className="text-xs font-mono text-slate border border-rule px-2 py-1 hover:border-forest hover:text-forest transition-colors"
+                            >
+                              Copy
+                            </button>
+                          </div>
+                          <p className="text-xs text-slate italic leading-relaxed">{letter.suggestedRewrite.styleNotes}</p>
+                          <div className="border border-rule p-4 bg-paper">
+                            <p className="text-sm text-ink leading-relaxed whitespace-pre-line">{letter.suggestedRewrite.content}</p>
+                          </div>
+                          <button
+                            type="button"
+                            disabled={rewritingLetterId === letter._id}
+                            onClick={() => handleRewriteLetter(letter._id)}
+                            className="text-xs text-slate underline disabled:opacity-60"
+                          >
+                            {rewritingLetterId === letter._id ? "Regenerating…" : "Regenerate draft"}
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </section>
+          )}
         </div>
       )}
 
-      {error && !needsCv && !needsUpgradeCoaching && !needsUpgradeEssays && (
+      {error && !needsCv && !needsUpgradeCoaching && !needsUpgradeEssays && !needsUpgradeRefLetters && (
         <p className="text-alert text-sm mt-6">{error}</p>
       )}
     </div>

@@ -226,6 +226,8 @@ function ForYouPanel() {
 }
 
 export default function HomePage() {
+  const { user, loading: authLoading } = useAuth();
+
   const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
   const [pagination, setPagination] = useState<Pagination | null>(null);
   const [loading, setLoading] = useState(true);
@@ -279,104 +281,120 @@ export default function HomePage() {
 
   return (
     <div className="max-w-6xl mx-auto px-6 py-16">
-      {/* Hero */}
-      <div className="flex flex-col lg:flex-row lg:items-center gap-14 lg:gap-16">
-        <div className="max-w-xl flex-shrink-0">
-          <h1 className="font-display text-5xl sm:text-6xl text-ink leading-[1.05] tracking-tight">
-            Study abroad.<br />
-            <span style={{ color: "#2563EB" }}>Without the guesswork.</span>
-          </h1>
-          <p className="text-ink-soft mt-5 text-lg leading-relaxed">
-            Scholarships and programs matched to your profile. Coaching that closes the gaps before you apply. The committee decides — we help you show up prepared.
-          </p>
-          <div className="mt-7 flex gap-3">
-            <Link href="/register" className="btn-primary">Get started free</Link>
-            <Link href="/cv" className="btn-secondary">Upload your CV</Link>
-          </div>
-          <p className="mt-5 text-xs text-slate font-mono">Free to start · No credit card required</p>
-        </div>
-
-        {/* Product preview */}
-        <div className="hidden lg:block relative flex-1 min-h-[300px]">
-          {/* Glow */}
-          <div
-            className="absolute rounded-3xl pointer-events-none"
-            style={{
-              inset: "-20px",
-              background: "radial-gradient(ellipse at 60% 50%, rgba(37,99,235,0.08) 0%, transparent 70%)",
-            }}
-          />
-
-          {/* Readiness card */}
-          <div className="case-card p-5 absolute top-0 left-0 w-72">
-            <p className="font-mono text-xs text-slate uppercase tracking-widest mb-3">Readiness Score</p>
-            <div className="flex items-center gap-4">
-              <div className="relative shrink-0" style={{ width: 72, height: 72 }}>
-                <svg viewBox="0 0 64 64" className="w-full h-full" style={{ transform: "rotate(-90deg)" }}>
-                  <circle cx="32" cy="32" r="26" fill="none" stroke="#E2E8F0" strokeWidth="5.5" />
-                  <circle cx="32" cy="32" r="26" fill="none" stroke="#2563EB" strokeWidth="5.5"
-                    strokeLinecap="round"
-                    strokeDasharray={String(2 * Math.PI * 26)}
-                    strokeDashoffset={String(2 * Math.PI * 26 * 0.27)}
-                  />
-                </svg>
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <span className="font-display text-xl leading-none" style={{ color: "#2563EB" }}>73</span>
-                </div>
-              </div>
-              <div>
-                <p className="font-display text-lg text-ink">On Track</p>
-                <p className="text-xs text-slate mt-0.5">Language score needed</p>
-              </div>
-            </div>
-            <div className="mt-4 space-y-2">
-              {[
-                { label: "Academic", pct: 80 },
-                { label: "Experience", pct: 64 },
-                { label: "Language", pct: 50 },
-              ].map(({ label, pct }) => (
-                <div key={label} className="flex items-center gap-3">
-                  <span className="text-xs text-slate w-20 shrink-0 font-mono">{label}</span>
-                  <div className="flex-1 h-1.5 bg-rule rounded-full overflow-hidden">
-                    <div className="h-full bg-forest rounded-full" style={{ width: `${pct}%` }} />
-                  </div>
-                  <span className="text-xs font-mono text-slate w-7 text-right">{pct}%</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Match card */}
-          <div
-            className="case-card p-4 absolute w-60"
-            style={{
-              bottom: 0,
-              right: 0,
-              boxShadow: "0 4px 12px 0 rgba(0,0,0,0.08), 0 8px 24px 0 rgba(0,0,0,0.06)",
-            }}
-          >
-            <div className="flex items-start justify-between gap-2 mb-2.5">
-              <div className="min-w-0">
-                <p className="text-xs font-mono text-slate">UK · Full funding</p>
-                <p className="text-sm font-medium text-ink leading-snug mt-0.5">Chevening Scholarship 2025</p>
-              </div>
-              <span className="badge bg-blue-50 text-forest border border-blue-200 shrink-0">Strong</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="flex-1 h-1.5 bg-rule rounded-full overflow-hidden">
-                <div className="h-full bg-forest rounded-full" style={{ width: "87%" }} />
-              </div>
-              <span className="font-mono text-xs text-forest shrink-0 w-8 text-right">87%</span>
-            </div>
-            <p className="text-xs text-ink-soft mt-2 leading-snug">
-              Your profile fits the criteria well — now the preparation starts.
+      {/* Hero — shown only to visitors, hidden once logged in */}
+      {!authLoading && !user && (
+        <div className="flex flex-col lg:flex-row lg:items-center gap-14 lg:gap-16">
+          <div className="max-w-xl flex-shrink-0">
+            <h1 className="font-display text-5xl sm:text-6xl text-ink leading-[1.05] tracking-tight">
+              Study abroad.<br />
+              <span style={{ color: "#2563EB" }}>Without the guesswork.</span>
+            </h1>
+            <p className="text-ink-soft mt-5 text-lg leading-relaxed">
+              Scholarships and programs matched to your profile. Coaching that closes the gaps before you apply. The committee decides — we help you show up prepared.
             </p>
+            <div className="mt-7 flex gap-3">
+              <Link href="/register" className="btn-primary">Get started free</Link>
+              <Link href="/cv" className="btn-secondary">Upload your CV</Link>
+            </div>
+            <p className="mt-5 text-xs text-slate font-mono">Free to start · No credit card required</p>
+          </div>
+
+          {/* Product preview */}
+          <div className="hidden lg:block relative flex-1 min-h-[300px]">
+            <div
+              className="absolute rounded-3xl pointer-events-none"
+              style={{
+                inset: "-20px",
+                background: "radial-gradient(ellipse at 60% 50%, rgba(37,99,235,0.08) 0%, transparent 70%)",
+              }}
+            />
+            <div className="case-card p-5 absolute top-0 left-0 w-72">
+              <p className="font-mono text-xs text-slate uppercase tracking-widest mb-3">Readiness Score</p>
+              <div className="flex items-center gap-4">
+                <div className="relative shrink-0" style={{ width: 72, height: 72 }}>
+                  <svg viewBox="0 0 64 64" className="w-full h-full" style={{ transform: "rotate(-90deg)" }}>
+                    <circle cx="32" cy="32" r="26" fill="none" stroke="#E2E8F0" strokeWidth="5.5" />
+                    <circle cx="32" cy="32" r="26" fill="none" stroke="#2563EB" strokeWidth="5.5"
+                      strokeLinecap="round"
+                      strokeDasharray={String(2 * Math.PI * 26)}
+                      strokeDashoffset={String(2 * Math.PI * 26 * 0.27)}
+                    />
+                  </svg>
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <span className="font-display text-xl leading-none" style={{ color: "#2563EB" }}>73</span>
+                  </div>
+                </div>
+                <div>
+                  <p className="font-display text-lg text-ink">On Track</p>
+                  <p className="text-xs text-slate mt-0.5">Language score needed</p>
+                </div>
+              </div>
+              <div className="mt-4 space-y-2">
+                {[
+                  { label: "Academic", pct: 80 },
+                  { label: "Experience", pct: 64 },
+                  { label: "Language", pct: 50 },
+                ].map(({ label, pct }) => (
+                  <div key={label} className="flex items-center gap-3">
+                    <span className="text-xs text-slate w-20 shrink-0 font-mono">{label}</span>
+                    <div className="flex-1 h-1.5 bg-rule rounded-full overflow-hidden">
+                      <div className="h-full bg-forest rounded-full" style={{ width: `${pct}%` }} />
+                    </div>
+                    <span className="text-xs font-mono text-slate w-7 text-right">{pct}%</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div
+              className="case-card p-4 absolute w-60"
+              style={{
+                bottom: 0,
+                right: 0,
+                boxShadow: "0 4px 12px 0 rgba(0,0,0,0.08), 0 8px 24px 0 rgba(0,0,0,0.06)",
+              }}
+            >
+              <div className="flex items-start justify-between gap-2 mb-2.5">
+                <div className="min-w-0">
+                  <p className="text-xs font-mono text-slate">UK · Full funding</p>
+                  <p className="text-sm font-medium text-ink leading-snug mt-0.5">Chevening Scholarship 2025</p>
+                </div>
+                <span className="badge bg-blue-50 text-forest border border-blue-200 shrink-0">Strong</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="flex-1 h-1.5 bg-rule rounded-full overflow-hidden">
+                  <div className="h-full bg-forest rounded-full" style={{ width: "87%" }} />
+                </div>
+                <span className="font-mono text-xs text-forest shrink-0 w-8 text-right">87%</span>
+              </div>
+              <p className="text-xs text-ink-soft mt-2 leading-snug">
+                Your profile fits the criteria well — now the preparation starts.
+              </p>
+            </div>
           </div>
         </div>
-      </div>
+      )}
+
+      {/* Logged-in header */}
+      {!authLoading && user && (
+        <div className="flex flex-wrap items-baseline justify-between gap-3">
+          <div>
+            <h1 className="font-display text-3xl sm:text-4xl text-ink">
+              {user.cvData ? "Find your next opportunity" : "Welcome, " + (user.fullName?.split(" ")[0] ?? "there")}
+            </h1>
+            {!user.cvData && (
+              <p className="text-ink-soft text-sm mt-1">
+                <Link href="/cv" className="text-forest underline">Upload your CV</Link> to unlock personalised matching and coaching.
+              </p>
+            )}
+          </div>
+          <Link href="/dashboard" className="text-sm text-slate hover:text-forest transition-colors font-mono">
+            My applications →
+          </Link>
+        </div>
+      )}
 
       {/* Segment control tab switcher */}
-      <div className="mt-14">
+      <div className={!authLoading && user ? "mt-8" : "mt-14"}>
         <div
           className="inline-flex rounded-lg p-1 gap-1"
           style={{ background: "#EEF2FF" }}

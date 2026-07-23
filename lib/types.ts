@@ -148,6 +148,17 @@ export interface EssayPrompt {
   guidance?: string;
 }
 
+export interface ReferenceLetterQuestion {
+  text: string;
+  optional?: boolean;
+}
+
+export interface ReferenceLetterConfig {
+  instructions: string;
+  questions: ReferenceLetterQuestion[];
+  count: number;
+}
+
 export interface Opportunity {
   _id: string;
   title: string;
@@ -164,6 +175,7 @@ export interface Opportunity {
   eligibilitySummary: string;
   requirements: Requirement[];
   essayPrompts?: EssayPrompt[];
+  referenceLetterConfig?: ReferenceLetterConfig;
   strongApplicantProfile?: string;
   officialUrl: string;
   isActive: boolean;
@@ -212,6 +224,34 @@ export interface EssayDraft {
     authenticityNotes: string;
     reviewedAt: string;
   };
+  rewrite?: {
+    content: string;
+    styleNotes: string;
+    changesApplied: string[];
+    generatedAt: string;
+  };
+}
+
+export interface ReferenceLetterReview {
+  overallAssessment: string;
+  strengths: string[];
+  issues: { location: string; problem: string; suggestion: string }[];
+  complianceNotes?: string;
+  reviewedAt: string;
+}
+
+export interface ReferenceLetter {
+  _id: string;
+  letterType: "work" | "academic" | "other";
+  originalFileName: string;
+  refereeOrganization?: string;
+  uploadedAt: string;
+  review?: ReferenceLetterReview;
+  suggestedRewrite?: {
+    content: string;
+    styleNotes: string;
+    generatedAt: string;
+  };
 }
 
 export interface Application {
@@ -221,6 +261,7 @@ export interface Application {
   targetApplications: { program?: string; school?: string }[];
   coaching?: CoachingOutput;
   essayDrafts: EssayDraft[];
+  referenceLetters: ReferenceLetter[];
   status: "draft" | "coaching_generated" | "in_review" | "submitted" | "outcome_recorded";
   outcome?: "pending" | "awarded" | "rejected" | "waitlisted";
 }

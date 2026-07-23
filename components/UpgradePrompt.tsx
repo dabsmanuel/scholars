@@ -3,7 +3,7 @@
 import Link from "next/link";
 
 interface Props {
-  feature: "coaching" | "essays" | "recommendations" | "roadmap" | "interview" | "mentor";
+  feature: "coaching" | "essays" | "recommendations" | "roadmap" | "interview" | "mentor" | "reference_letters";
 }
 
 const COPY: Record<Props["feature"], { heading: string; body: string }> = {
@@ -30,6 +30,10 @@ const COPY: Record<Props["feature"], { heading: string; body: string }> = {
   mentor: {
     heading: "You've reached your free message limit",
     body: "Upgrade to Pro for unlimited conversations with your mentor — ask follow-up questions, go deep on any scholarship, and come back any time.",
+  },
+  reference_letters: {
+    heading: "Reference letter review is a Pro feature",
+    body: "Upgrade to Pro to upload your referee's letters for AI review and get a suggested improved draft you can share with your referee — written to answer every form question.",
   },
 };
 
