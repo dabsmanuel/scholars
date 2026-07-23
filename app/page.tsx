@@ -11,10 +11,9 @@ import Link from "next/link";
 const TYPES = [
   { value: "", label: "All types" },
   { value: "scholarship", label: "Scholarships" },
+  { value: "fellowship", label: "Fellowships" },
   { value: "study_program", label: "Study Programs" },
   { value: "immigration_pathway", label: "Immigration Pathways" },
-  { value: "incubator", label: "Incubators" },
-  { value: "fellowship", label: "Fellowships" },
 ];
 
 const DEGREE_LEVELS = [
@@ -249,6 +248,8 @@ export default function HomePage() {
       const params = new URLSearchParams();
       if (q) params.set("q", q);
       if (type) params.set("type", type);
+      // incubators/accelerators live on /grants — exclude when no specific type is selected
+      else params.set("excludeType", "incubator");
       if (degreeLevel) params.set("degreeLevel", degreeLevel);
       if (country) params.set("country", country);
       params.set("page", String(page));
@@ -428,6 +429,21 @@ export default function HomePage() {
         <ForYouPanel />
       ) : (
         <>
+          {/* Grants callout */}
+          <Link
+            href="/grants"
+            className="mt-5 flex items-center justify-between gap-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 hover:bg-amber-100 transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <span className="text-lg">💡</span>
+              <div>
+                <p className="text-sm font-medium text-brass">Looking for startup grants?</p>
+                <p className="text-xs text-amber-700 mt-0.5">Browse grants for tech, Africa, innovation, inclusion, and talent — refreshed every 8 hours.</p>
+              </div>
+            </div>
+            <span className="font-mono text-xs text-brass shrink-0">View Grants →</span>
+          </Link>
+
           {/* Filter bar */}
           <div className="mt-4 flex flex-col md:flex-row gap-2.5">
             <input

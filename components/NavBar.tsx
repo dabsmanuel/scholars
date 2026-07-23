@@ -64,6 +64,7 @@ export default function NavBar() {
         {/* Desktop nav */}
         <nav className="hidden lg:flex items-center gap-5 text-sm flex-1">
           {navLink("/", "Discover")}
+          {navLink("/grants", "Grants")}
           {navLink("/countries", "Countries")}
           {navLink("/wins", "Wins")}
 
@@ -196,6 +197,7 @@ export default function NavBar() {
             <div className="absolute top-full left-0 right-0 bg-white border-b border-rule shadow-md z-40">
               <div className="py-2">
                 <Link href="/" className="block px-5 py-3 text-sm text-ink-soft hover:text-ink hover:bg-surface">Discover</Link>
+                <Link href="/grants" className="block px-5 py-3 text-sm text-ink-soft hover:text-ink hover:bg-surface">Grants</Link>
                 <Link href="/countries" className="block px-5 py-3 text-sm text-ink-soft hover:text-ink hover:bg-surface">Country Guides</Link>
                 <Link href="/wins" className="block px-5 py-3 text-sm text-ink-soft hover:text-ink hover:bg-surface">Wins</Link>
 

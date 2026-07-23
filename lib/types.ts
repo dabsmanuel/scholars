@@ -325,3 +325,38 @@ export interface CountrySummary {
   avgMonthlyExpensesUSD: number;
   applicationLanguage: string;
 }
+
+export type GrantTag =
+  | "africa"
+  | "technology"
+  | "innovation"
+  | "inclusion"
+  | "talent"
+  | "climate"
+  | "health"
+  | "education"
+  | "youth";
+
+export interface Grant {
+  _id: string;
+  title: string;
+  provider: string;
+  description: string;
+  amount?: string;
+  deadline?: string;
+  url: string;
+  tags: GrantTag[];
+  region?: string;
+  source: string;
+  imageUrl?: string;
+  isOpen: boolean;
+  scrapedAt: string;
+}
+
+export interface GrantsResponse {
+  grants: Grant[];
+  total: number;
+  page: number;
+  pages: number;
+  lastScrapedAt: string | null;
+}
